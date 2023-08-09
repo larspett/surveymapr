@@ -1,0 +1,302 @@
+---
+format:
+  pdf:
+    fig-align: center
+    fig-pos: H
+    geometry:
+      - top=1mm     # margin settings
+      - bottom=1mm
+      - left=1mm
+      - right=1mm
+    papersize: a4
+crossref:
+  fig-title: Figur
+  tbl-title: Tabell
+  fig-prefix: Figur
+  tbl-prefix: Tabell
+execute: 
+  echo: false
+  error: false
+  warning: false
+  message: false
+params:
+  faltid: NA
+ # siteText: "Ekön Finspång"
+  lankod: "Östergötlands"
+---
+
+```{r setup, include=FALSE}
+library(sf)
+#library(ggmap)
+library(magick)
+library(leaflet)
+library(leaflet.providers)
+library(widgetframe)
+library(mapview)
+#library(prettymapr)
+library(tidyverse)
+
+```
+
+```{r}
+#| label: "load data"
+#| include: false
+#| message: false
+#| warning: false
+#| error: false
+
+tmp <- read_csv("data/ostergotland_rmo.csv") %>% 
+  filter(str_detect(sit_name, "Fölling.* (transekter 2$|slinga [1-2])|Ekön.*? slinga 1$|Bomhult.* transekter$", negate = T)) %>%  # Filter out the erroneous transekter and slinga in Föllingsö, Ekö and Bomhult
+  filter(sit_aggregated == params$faltid) %>% 
+  #filter(sit_aggregated == 1814) %>% # For testing
+  mutate(geo_geom = structure(geo_geom, class = "WKB"),
+         geometry = st_as_sfc(geo_geom, EWKB = T, crs = 3006)) %>% 
+  select(SiteID = sit_uid, SiteText = sit_name, segment = geo_seg_sequence, geometry) %>% 
+  st_sf() %>% 
+  st_cast() %>% 
+  st_transform(crs = 4326)
+
+LAN <- st_read("~/Dokument/GIS/Län/Länsgränser_SCB_07.shp") %>% 
+  #filter(LNNAMN == params$lankod) %>% 
+  filter(LNNAMN == "Östergötlands") %>% 
+  st_transform(crs = 4326)
+
+sitelabel <- tmp %>% 
+  mutate(SiteText = str_remove(SiteText, " slinga.*| transekter.*")) %>% 
+  distinct(SiteText) %>% 
+  pull()
+
+```
+
+```{r}
+#| label: "Make data elements"
+
+# Bounding box
+bbo <- tmp %>% 
+  st_bbox()
+
+# Centroids
+cent <- st_as_sfc(bbo, crs = st_crs(4326)) %>% 
+  st_centroid() %>% 
+  st_coordinates()
+
+lanC <- LAN %>% 
+  st_centroid() %>% 
+  st_coordinates()
+
+# Transects
+trans <- tmp %>% 
+  filter(str_detect(SiteText, "transekt"))
+  #filter(!str_detect(SiteText, "(2|3)$|sling.*"))
+ #filter(str_detect(SiteText, "transekt.* 1"))
+
+# Slingor
+sling <- tmp %>%
+  filter(str_detect(SiteText, "sling"))
+  #filter(!str_detect(SiteText, "(2|3)$|transe.*"))
+  #filter(str_detect(SiteText, "sling.*? 3"))
+
+
+# Endpoints of slinga
+if (ncol(sling %>% st_coordinates())>3) {
+  
+  slingend <- sling %>% 
+    st_coordinates() %>% 
+    as_tibble() %>% 
+    group_by(L2) %>% 
+    summarise(X = first(X), Y = first(Y))
+}else{
+  
+  slingend <- sling %>% 
+    st_coordinates() %>% 
+    as_tibble() %>% 
+    group_by(L1) %>% 
+    summarise(X = first(X), Y = first(Y))  
+}
+
+# Endpoints of transekt
+if (ncol(trans %>% st_coordinates())>3) {
+  
+  
+  transend <- trans %>% 
+    st_coordinates() %>% 
+    as_tibble() %>% 
+    group_by(L2) %>% 
+    summarise(X = first(X), Y = first(Y))
+}else{
+  transend <- trans %>% 
+    st_coordinates() %>% 
+    as_tibble() %>% 
+    group_by(L1) %>% 
+    summarise(X = first(X), Y = first(Y))
+  
+}
+
+```
+
+# Slingor **`r sitelabel`**
+
+```{r}
+#| label: "Slingelement"
+#| include: true
+#| fig-pos: H
+
+m <- leaflet(options = leafletOptions(zoomControl = FALSE, attributionControl=FALSE)) %>%
+  addTiles() %>% 
+  addProviderTiles("Esri.WorldImagery") %>% 
+  #  addAwesomeMarkers(data = slingend, lng = ~lng, lat = ~lat) %>% 
+  addPolylines(data = sling, color = "#ffff31",
+               label = sling$segment,
+               labelOptions = labelOptions(textsize = "16px",
+                                           noHide = TRUE,
+                                           style = list("font-weight" = "bold",
+                                                        background = rgb(255,255,255,0,maxColorValue = 255),
+                                                        color = "white")),
+               opacity = 0.6,
+               weight = 5) %>%
+  addCircleMarkers(data = slingend, lng = ~X, lat = ~Y,
+                   radius = 7,
+                   color = "orange",
+                   stroke = FALSE, fillOpacity = 1
+  ) %>% 
+  addScaleBar(position = "topright", options = scaleBarOptions(imperial = F))
+
+htmlwidgets::saveWidget(m, file = "maps/m.html")
+webshot2::webshot(url = "maps/m.html", file = "maps/Slingor.png", vwidth = 800, vheight = 800)
+
+#mapshot(m, file = "maps/Overview.png")
+
+```
+
+
+# Transekter **`r sitelabel`**
+
+```{r}
+#| label: "Transektelement"
+#| include: true
+#| fig-pos: H
+
+# ggmap(map) +
+#   geom_sf(data = tmp, inherit.aes = F)
+
+m <- leaflet(options = leafletOptions(zoomControl = FALSE, attributionControl=FALSE)) %>%
+  addTiles() %>% 
+  addProviderTiles("Esri.WorldImagery") %>%
+  addPolylines(data = trans,
+               color = "#b7c9e2",
+               label = trans$segment,
+               noClip = T,
+               labelOptions = labelOptions(textsize = "16px",
+                                           noHide = TRUE,
+                                           style = list("font-weight" = "bold",
+                                                        background = rgb(255,255,255,0.1,maxColorValue = 255),
+                                                        color = "white")),
+               opacity = 0.8,
+               weight = 6) %>% 
+  addScaleBar(position = "topright", options = scaleBarOptions(imperial = F))
+
+htmlwidgets::saveWidget(m, file = "maps/m.html")
+webshot2::webshot(url = "maps/m.html", file = "maps/Transekter.png", vwidth = 800, vheight = 900)
+
+#mapshot(m, file = "maps/Overview.png")
+```
+
+
+
+::: {layout="[[50,-1,49], [100]]"}
+
+```{r}
+#| label: "Översiktskarta"
+#| include: true
+#| fig-pos: H
+
+
+m <- leaflet(cent, options = leafletOptions(zoomControl = FALSE, attributionControl=T)) %>%
+  addTiles() %>% 
+  addProviderTiles("Thunderforest.Landscape") %>% #Thunderforest.Landscape
+  setView(lng = cent[1], lat = cent[2],  zoom = 12) %>% 
+  addMarkers(lng = cent[1], lat = cent[2]) %>% 
+  addPolylines(data = sling, color = "orange", weight = 2.5) %>%
+  addPolylines(data = trans, color = "orange", weight = 2.5) %>% 
+  addLabelOnlyMarkers(lng = bbo[3]+0.087, lat = bbo[4]+0.035,
+                      label = sitelabel,
+                      labelOptions = labelOptions(textsize = "40px",
+                                                 noHide = TRUE,
+                                                 style = list("font-weight" = "bold"))) %>% 
+  addScaleBar(position = "topright", options = scaleBarOptions(imperial = F))
+
+htmlwidgets::saveWidget(m, file = "maps/m.html")
+webshot2::webshot(url = "maps/m.html", file = "maps/Overview.png", vwidth = 800, vheight = 800)
+
+#mapshot(m, file = "maps/Overview.png")
+
+```
+
+```{r}
+#| label: "Länskarta"
+#| include: true
+#| fig-pos: H
+m <- leaflet(LAN, options = leafletOptions(zoomControl = FALSE, attributionControl=T)) %>%
+  addTiles() %>% 
+  addProviderTiles("Thunderforest.Landscape") %>%
+  #setView(lng = lanC[1], lat = lanC[2],  zoom = 9) %>% 
+  addPolylines(color = "red", weight = 4) %>% 
+  addMarkers(lng = cent[1], lat = cent[2],
+             label = sitelabel,
+             labelOptions = labelOptions(textsize = "14px",
+                                         noHide = T,
+                                         offset = c(30,-55),
+                                         style = list("font-weight" = "bold"))) %>% 
+  addScaleBar(position = "topright", options = scaleBarOptions(imperial = F))
+
+htmlwidgets::saveWidget(m, file = "maps/m.html")
+webshot2::webshot(url = "maps/m.html", file = "maps/Lan.png", vwidth = 1000, vheight = 1000)
+
+#mapshot(m, file = "maps/Overview.png")
+
+```
+
+
+```{r}
+#| label: "Slingor och transekter"
+#| include: true
+#| fig-pos: H
+
+m <- leaflet(options = leafletOptions(zoomControl = FALSE, attributionControl = FALSE)) %>% # Remove zoom controls and attribution text 
+  addTiles() %>% 
+  addProviderTiles("Esri.WorldImagery") %>% 
+  addPolylines(data = sling,
+               color = "#ffff31", # Colour of the line element
+               label = sling$segment, # Label text from data
+               labelOptions = labelOptions(textsize = "12px", # Make text larger
+                                           noHide = TRUE, # Make labels show without clicking them
+                                           style = list("font-weight" = "bold", # Make label text bold
+                                                        background = rgb(255,255,255,0.1,maxColorValue = 255), # Make label box background transparent
+                                                        color = "white"),), # Color of label text
+               opacity = 0.8, # Make line elements semi-transparent
+               weight = 5) %>% # Size of lines
+  addPolylines(data = trans,
+               color = "#b7c9e2",
+               label = trans$segment,
+               labelOptions = labelOptions(textsize = "12px",
+                                           noHide = TRUE,
+                                           #offset = c(20,-10),
+                                           style = list("font-weight" = "bold",
+                                                        background = rgb(255,255,255,0.1,maxColorValue = 255),
+                                                        color = "white")),
+               opacity = 0.8,
+               weight = 6) %>% 
+  addCircleMarkers(data = slingend, lng = ~X, lat = ~Y, # Data and coordinates taken from data
+                   radius = 7, # Size of circle
+                   color = "orange", # Colour of circle
+                   stroke = FALSE, # Whether to make a "border" around the centre point
+                   fillOpacity = 1 # The opacity of centre
+  ) %>% 
+  addScaleBar(position = "topright", options = scaleBarOptions(imperial = F))
+
+# BUG: These are necessary as mapview::mapshot() does not work for now (it uses webshot() instead of webshot2())
+htmlwidgets::saveWidget(m, file = "maps/m.html")
+webshot2::webshot(url = "maps/m.html", file = "maps/TransSlingor.png", vwidth = 800, vheight = 800)
+
+```
+:::
