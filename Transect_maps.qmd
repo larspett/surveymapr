@@ -21,20 +21,26 @@ execute:
   message: false
 params:
   faltid: NA
+  dat: "none"
  # siteText: "Ekön Finspång"
   lankod: "Östergötlands"
 ---
 
 ```{r setup, include=FALSE}
 library(sf)
-#library(ggmap)
 library(magick)
 library(leaflet)
 library(leaflet.providers)
 library(widgetframe)
+library(htmlwidgets)
+library(webshot2)
 library(mapview)
-#library(prettymapr)
-library(tidyverse)
+library(readr)
+library(dplyr)
+library(tidyr)
+
+
+load("R/sysdata.rda")
 
 ```
 
@@ -45,10 +51,15 @@ library(tidyverse)
 #| warning: false
 #| error: false
 
-tmp <- read_csv("data/ostergotland_rmo.csv") %>% 
+if (params$dat == "none") {
+  dat <- lokaler
+}else {
+  dat <- read_csv2(params$dat)
+}
+
+tmp <- dat  %>%
   filter(str_detect(sit_name, "Fölling.* (transekter 2$|slinga [1-2])|Ekön.*? slinga 1$|Bomhult.* transekter$", negate = T)) %>%  # Filter out the erroneous transekter and slinga in Föllingsö, Ekö and Bomhult
   filter(sit_aggregated == params$faltid) %>% 
-  #filter(sit_aggregated == 1814) %>% # For testing
   mutate(geo_geom = structure(geo_geom, class = "WKB"),
          geometry = st_as_sfc(geo_geom, EWKB = T, crs = 3006)) %>% 
   select(SiteID = sit_uid, SiteText = sit_name, segment = geo_seg_sequence, geometry) %>% 
@@ -56,9 +67,8 @@ tmp <- read_csv("data/ostergotland_rmo.csv") %>%
   st_cast() %>% 
   st_transform(crs = 4326)
 
-LAN <- st_read("~/Dokument/GIS/Län/Länsgränser_SCB_07.shp") %>% 
-  #filter(LNNAMN == params$lankod) %>% 
-  filter(LNNAMN == "Östergötlands") %>% 
+LAN <- counties %>% 
+  filter(str_detect(LNNAMN, params$lankod)) %>% 
   st_transform(crs = 4326)
 
 sitelabel <- tmp %>% 
