@@ -4,18 +4,24 @@
 \alias{render_map}
 \title{Render the Maps for Your Sites}
 \usage{
-render_map(sites = "none", county)
+render_map(sites = NA, siteID = NA, county)
 }
 \arguments{
-\item{sites}{a path to a semicolon separated csv file with sites with transect or point coordinates to use}
+\item{sites}{a path to a semicolon separated csv file with sites with
+transect or point coordinates to use}
 
-\item{county}{character; the county name of the county your survey is situated in}
+\item{siteID}{site id for the sites you want}
+
+\item{county}{character; the county name of the county your survey is
+situated in}
 }
 \value{
-a pdf with an overview map and zoomed in maps on the transects or points.
+a pdf with an overview map and zoomed in maps on the transects or
+  points.
 }
 \description{
-This function takes a list of sites with coordinates of transects, or points and makes maps from this.
+This function takes a list of sites with coordinates of transects, or points
+and makes maps from this.
 }
 \examples{
 \dontrun{
