@@ -2,7 +2,8 @@
 #' Creates a Render Function to Render qmd Templates
 #'
 #' @param siteid site id for each locale where the transects or points are.
-#' @param data the path to the data with siteid and coordinates for transects and points.
+#' @param data the path to the data with siteid and coordinates for transects
+#'   and points.
 #' @param county character; the county where the survey take place
 #' @import quarto
 #'
@@ -23,16 +24,21 @@ render_locals <- compiler::cmpfun(function(siteid, sites, county) {
 
 #' Render the Maps for Your Sites
 #'
-#' This function takes a list of sites with coordinates of transects, or points and makes maps from this.
+#' This function takes a list of sites with coordinates of transects, or points
+#' and makes maps from this.
 #'
-#' @param sites a path to a semicolon separated csv file with sites with transect or point coordinates to use
-#' @param county character; the county name of the county your survey is situated in
+#' @param sites a path to a semicolon separated csv file with sites with
+#'   transect or point coordinates to use
+#' @param siteID site id for the sites you want
+#' @param county character; the county name of the county your survey is
+#'   situated in
 #'
 #' @import dplyr
 #' @importFrom readr read_csv2
 #' @importFrom purrr walk2 possibly
 #'
-#' @return a pdf with an overview map and zoomed in maps on the transects or points.
+#' @return a pdf with an overview map and zoomed in maps on the transects or
+#'   points.
 #'
 #' @export
 #'
