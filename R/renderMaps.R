@@ -47,18 +47,28 @@ render_locals <- compiler::cmpfun(function(siteid, sites, county) {
 #' render_map("data/lokaler.csv")
 #' }
 
-render_map <- function(sites="none", county) {
+render_map <- function(sites=NA, siteID = NA,  county) {
 
-  if (sites == "none") {
+  if (is.na(sites)) {
     site <- lokaler
   }else {
     site <- read_csv2(sites)
   }
 
-  siteid <- site %>%
-    distinct(sit_aggregated) %>%
+  if (is.na(siteID)) {
+
+    siteid <- site %>%
+      distinct(sit_aggregated) %>%
+      pull()
+
+  }else {
+
+    siteid <- site %>%
+      distinct(sit_aggregated) %>%
+      filter(sit_aggregated %in% siteID)
     pull()
 
+  }
   walk2(siteid, sites, possibly(~render_locals(siteid=.x, sites=.y, county = county), otherwise = "Redo"), .progress = "Creating maps") # The 'possibly' hinder the function to stop if some of the site maps does not work
 
 }
