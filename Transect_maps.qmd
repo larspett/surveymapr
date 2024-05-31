@@ -21,7 +21,7 @@ execute:
   message: false
 params:
   faltid: NA
-  dat: "none"
+  dat: NA
  # siteText: "Ekön Finspång"
   lankod: "Östergötlands"
 ---
@@ -38,6 +38,7 @@ library(mapview)
 library(readr)
 library(dplyr)
 library(tidyr)
+library(stringr)
 
 
 load("R/sysdata.rda")
@@ -51,7 +52,7 @@ load("R/sysdata.rda")
 #| warning: false
 #| error: false
 
-if (params$dat == "none") {
+if (is.na(params$dat)) {
   dat <- lokaler
 }else {
   dat <- read_csv2(params$dat)
