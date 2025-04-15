@@ -9,7 +9,7 @@
 #'
 #' @noRd
 
-render_locals <- compiler::cmpfun(function(siteid, sites, county) {
+render_locals <- function(siteid, sites, county) {
 
   quarto_render(input = "./Transect_maps.qmd",
                 output_format = "all",
@@ -19,8 +19,21 @@ render_locals <- compiler::cmpfun(function(siteid, sites, county) {
                 output_file = glue::glue("{siteid}.pdf"), ##TODO: Perhaps add the site name instead of ID in the pdf name
                 cache_refresh = T)
 
+  cache <- list.files(path = "Transect_maps_cache/", full.names = T, recursive = T)
+  mapfile <- list.files(path = "Transect_maps_files/", full.names = T, recursive = T)
+  mapsfile <- list.files(path = "maps/", full.names = T, recursive = T)
+
+    file.remove(cache)
+    file.remove(mapfile)
+    file.remove(mapsfile)
+
+    # file.remove("Transect_maps_cache/pdf/")
+    # file.remove("Transect_maps_cache/")
+    # file.remove("Transect_maps_files/figure-pdf/")
+    # file.remove("Transect_maps_files/")
+
 }
-)
+
 
 #' Render the Maps for Your Sites
 #'
