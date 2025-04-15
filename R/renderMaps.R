@@ -37,21 +37,20 @@ render_locals <- function(siteid, sites, county) {
 
 #' Render the Maps for Your Sites
 #'
-#' This function takes a list of sites with coordinates of transects, or points
-#' and makes maps from this.
+#' This function takes a list of sites with coordinates of transects, or points and makes
+#' maps from this.
 #'
-#' @param sites a path to a semicolon separated csv file with sites with
-#'   transect or point coordinates to use
-#' @param siteID site id for the sites you want
-#' @param county character; the county name of the county your survey is
-#'   situated in
+#' @param sites a path to a semi-colon separated csv file with sites with transect or
+#'   point coordinates in WKT format
+#' @param siteID optional; site id for the sites you want. If not given it use all id in
+#'   the `sites` file
+#' @param county character; the county name of the county your survey is situated in
 #'
 #' @import dplyr
 #' @importFrom readr read_csv2
-#' @importFrom purrr walk2 possibly
+#' @importFrom purrr walk possibly
 #'
-#' @return a pdf with an overview map and zoomed in maps on the transects or
-#'   points.
+#' @return a pdf with an overview map and zoomed in maps on the transects or points.
 #'
 #' @export
 #'
