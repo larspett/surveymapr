@@ -80,7 +80,9 @@ render_map <- function(sites = NULL, siteID = NULL,  county) {
       filter(sit_aggregated %in% siteID) %>%
       pull()
   }
-  walk2(siteid, sites, possibly(~render_locals(siteid=.x, sites=.y, county = county), otherwise = "Redo"), .progress = "Creating maps") # The 'possibly' hinder the function to stop if some of the site maps does not work
+
+  # run trough all site-ids and sites
+  walk(siteid, possibly(~render_locals(siteid=.x, sites=sites, county = county), otherwise = "Redo"), .progress = "Creating maps") # The 'possibly' hinder the function to stop if some of the site maps does not work
 
 }
 
