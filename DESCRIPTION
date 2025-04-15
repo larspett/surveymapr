@@ -1,12 +1,12 @@
 Package: surveymapR
 Type: Package
 Title: Create Maps Around Survey Transects or Points
-Version: 0.1.1
+Version: 0.2.0
 Author: Georg Andersson
 Maintainer: Georg Andersson <georg.andersson@biol.lu.se>
 Description: This package create maps that show overview and specifics of transects and points in a survey.
     This can then be used in field to get to the specific site and then orient one self to where the surveys should be.
-License: What license is it under?
+License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Imports: dplyr,
@@ -24,5 +24,5 @@ Imports: dplyr,
     leaflet.providers,
     RColorBrewer
 Depends: 
-    R (>= 2.10)
-RoxygenNote: 7.3.1
+    R (>= 4.10)
+RoxygenNote: 7.3.2
