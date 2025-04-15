@@ -58,8 +58,8 @@ if (is.na(params$dat)) {
   dat <- read_csv2(params$dat)
 }
 
-tmp <- dat  %>%
-  filter(str_detect(sit_name, "Fölling.* (transekter 2$|slinga [1-2])|Ekön.*? slinga 1$|Bomhult.* transekter$", negate = T)) %>%  # Filter out the erroneous transekter and slinga in Föllingsö, Ekö and Bomhult
+tmp <- dat %>%
+  #filter(str_detect(sit_name, "Fölling.* (transekter 2$|slinga [1-2])|Ekön.*? slinga 1$|Bomhult.* transekter$", negate = T)) %>%  # Filter out the erroneous transekter and slinga in Föllingsö, Ekö and Bomhult
   filter(sit_aggregated == params$faltid) %>% 
   mutate(geo_geom = structure(geo_geom, class = "WKB"),
          geometry = st_as_sfc(geo_geom, EWKB = T, crs = 3006)) %>% 
