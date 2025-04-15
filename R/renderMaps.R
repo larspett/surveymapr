@@ -27,11 +27,6 @@ render_locals <- function(siteid, sites, county) {
     file.remove(mapfile)
     file.remove(mapsfile)
 
-    # file.remove("Transect_maps_cache/pdf/")
-    # file.remove("Transect_maps_cache/")
-    # file.remove("Transect_maps_files/figure-pdf/")
-    # file.remove("Transect_maps_files/")
-
 }
 
 
