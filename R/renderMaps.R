@@ -60,27 +60,25 @@ render_locals <- function(siteid, sites, county) {
 #' render_map("data/lokaler.csv")
 #' }
 
-render_map <- function(sites=NA, siteID = NA,  county) {
+render_map <- function(sites = NULL, siteID = NULL,  county) {
 
-  if (is.na(sites)) {
+  # set site source
+  if (is.null(sites)) {
     site <- lokaler
   }else {
     site <- read_csv2(sites)
   }
 
-  if (is.na(siteID)) {
-
+  # Set site ids
+  if (is.null(siteID)) {
     siteid <- site %>%
       distinct(sit_aggregated) %>%
       pull()
-
   }else {
-
     siteid <- site %>%
       distinct(sit_aggregated) %>%
       filter(sit_aggregated %in% siteID) %>%
       pull()
-
   }
   walk2(siteid, sites, possibly(~render_locals(siteid=.x, sites=.y, county = county), otherwise = "Redo"), .progress = "Creating maps") # The 'possibly' hinder the function to stop if some of the site maps does not work
 
