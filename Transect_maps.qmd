@@ -28,20 +28,17 @@ params:
 
 ```{r setup, include=FALSE}
 library(sf)
-library(magick)
+#library(magick)
 library(leaflet)
 library(leaflet.providers)
-library(widgetframe)
-library(htmlwidgets)
-library(webshot2)
+# library(widgetframe)
+# library(htmlwidgets)
+#library(webshot2)
 library(mapview)
 library(readr)
 library(dplyr)
 library(tidyr)
 library(stringr)
-
-
-load("R/sysdata.rda")
 
 ```
 
@@ -51,6 +48,8 @@ load("R/sysdata.rda")
 #| message: false
 #| warning: false
 #| error: false
+
+load("R/sysdata.rda")
 
 if (is.na(params$dat)) {
   dat <- lokaler
@@ -147,12 +146,12 @@ if (ncol(trans %>% st_coordinates())>3) {
 
 # Slingor **`r sitelabel`**
 
-```{r}
+```{r out.height='100%', out.width='100%'}
 #| label: "Slingelement"
 #| include: true
 #| fig-pos: H
 
-m <- leaflet(options = leafletOptions(zoomControl = FALSE, attributionControl=FALSE)) %>%
+m <- leaflet(options = leafletOptions(zoomControl = FALSE, attributionControl = FALSE)) %>%
   addTiles() %>% 
   addProviderTiles("Esri.WorldImagery") %>% 
   #  addAwesomeMarkers(data = slingend, lng = ~lng, lat = ~lat) %>% 
@@ -172,17 +171,20 @@ m <- leaflet(options = leafletOptions(zoomControl = FALSE, attributionControl=FA
   ) %>% 
   addScaleBar(position = "topright", options = scaleBarOptions(imperial = F))
 
-htmlwidgets::saveWidget(m, file = "maps/m.html")
-webshot2::webshot(url = "maps/m.html", file = "maps/Slingor.png", vwidth = 800, vheight = 800)
+ # htmlwidgets::saveWidget(m, file = "maps/m.html")
+ # webshot2::webshot(url = "maps/m.html", file = "maps/Slingor.png", vwidth = 800, vheight = 800)
 
-#mapshot(m, file = "maps/Overview.png")
+# 
+mapshot2(m, url = "maps/m.html", file = "maps/Slingor.png", remove_controls = c("zoomControl", "layersControl", "homeButton", "drawToolbar", "easyButton"), vwidth = 800, vheight = 900)
+# 
+knitr::include_graphics("maps/Slingor.png")
 
 ```
 
 
 # Transekter **`r sitelabel`**
 
-```{r}
+```{r out.height='100%', out.width='100%'}
 #| label: "Transektelement"
 #| include: true
 #| fig-pos: H
@@ -206,17 +208,19 @@ m <- leaflet(options = leafletOptions(zoomControl = FALSE, attributionControl=FA
                weight = 6) %>% 
   addScaleBar(position = "topright", options = scaleBarOptions(imperial = F))
 
-htmlwidgets::saveWidget(m, file = "maps/m.html")
-webshot2::webshot(url = "maps/m.html", file = "maps/Transekter.png", vwidth = 800, vheight = 900)
+# htmlwidgets::saveWidget(m, file = "maps/m.html")
+# webshot2::webshot(url = "maps/m.html", file = "maps/Transekter.png", vwidth = 800, vheight = 900)
 
-#mapshot(m, file = "maps/Overview.png")
+mapshot2(m, url = "maps/m.html", file = "maps/Transekter.png", remove_controls = c("zoomControl", "layersControl", "homeButton", "drawToolbar", "easyButton"), vwidth = 800, vheight = 900)
+
+knitr::include_graphics("maps/Transekter.png")
+
 ```
-
 
 
 ::: {layout="[[50,-1,49], [100]]"}
 
-```{r}
+```{r out.height='100%', out.width='100%'}
 #| label: "Översiktskarta"
 #| include: true
 #| fig-pos: H
@@ -236,18 +240,21 @@ m <- leaflet(cent, options = leafletOptions(zoomControl = FALSE, attributionCont
                                                  style = list("font-weight" = "bold"))) %>% 
   addScaleBar(position = "topright", options = scaleBarOptions(imperial = F))
 
-htmlwidgets::saveWidget(m, file = "maps/m.html")
-webshot2::webshot(url = "maps/m.html", file = "maps/Overview.png", vwidth = 800, vheight = 800)
+# htmlwidgets::saveWidget(m, file = "maps/m.html")
+# webshot2::webshot(url = "maps/m.html", file = "maps/Overview.png", vwidth = 800, vheight = 800)
 
-#mapshot(m, file = "maps/Overview.png")
+mapshot2(m, url = "maps/m.html", file = "maps/Overview.png", remove_controls = c("zoomControl", "layersControl", "homeButton", "drawToolbar", "easyButton"), vwidth = 750, vheight = 750)
+
+knitr::include_graphics("maps/Overview.png")
 
 ```
 
-```{r}
+```{r out.height='100%', out.width='100%'}
 #| label: "Länskarta"
 #| include: true
 #| fig-pos: H
-m <- leaflet(LAN, options = leafletOptions(zoomControl = FALSE, attributionControl=T)) %>%
+
+m <- leaflet(LAN, options = leafletOptions(zoomControl = FALSE, attributionControl = T)) %>%
   addTiles() %>% 
   addProviderTiles("Thunderforest.Landscape") %>%
   #setView(lng = lanC[1], lat = lanC[2],  zoom = 9) %>% 
@@ -260,15 +267,17 @@ m <- leaflet(LAN, options = leafletOptions(zoomControl = FALSE, attributionContr
                                          style = list("font-weight" = "bold"))) %>% 
   addScaleBar(position = "topright", options = scaleBarOptions(imperial = F))
 
-htmlwidgets::saveWidget(m, file = "maps/m.html")
-webshot2::webshot(url = "maps/m.html", file = "maps/Lan.png", vwidth = 1000, vheight = 1000)
+# htmlwidgets::saveWidget(m, file = "maps/m.html")
+# webshot2::webshot(url = "maps/m.html", file = "maps/Lan.png", vwidth = 1000, vheight = 1000)
 
-#mapshot(m, file = "maps/Overview.png")
+mapshot2(m, url = "maps/m.html", file = "maps/Lan.png", remove_controls = c("zoomControl", "layersControl", "homeButton", "drawToolbar", "easyButton"), vwidth = 750, vheight = 750)
+
+knitr::include_graphics("maps/Lan.png")
 
 ```
 
 
-```{r}
+```{r out.height='100%', out.width='100%'}
 #| label: "Slingor och transekter"
 #| include: true
 #| fig-pos: H
@@ -306,8 +315,12 @@ m <- leaflet(options = leafletOptions(zoomControl = FALSE, attributionControl = 
   addScaleBar(position = "topright", options = scaleBarOptions(imperial = F))
 
 # BUG: These are necessary as mapview::mapshot() does not work for now (it uses webshot() instead of webshot2())
-htmlwidgets::saveWidget(m, file = "maps/m.html")
-webshot2::webshot(url = "maps/m.html", file = "maps/TransSlingor.png", vwidth = 800, vheight = 800)
+# htmlwidgets::saveWidget(m, file = "maps/m.html")
+# webshot2::webshot(url = "maps/m.html", file = "maps/TransSlingor.png", vwidth = 800, vheight = 800)
+
+mapshot2(m, url = "maps/m.html", file = "maps/TransSlingor.png", remove_controls = c("zoomControl", "layersControl", "homeButton", "drawToolbar", "easyButton"), vwidth = 800, vheight = 700)
+knitr::include_graphics("maps/TransSlingor.png")
 
 ```
+
 :::
