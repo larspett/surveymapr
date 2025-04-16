@@ -54,8 +54,11 @@ render_locals <- function(siteid, sites, county) {
 #' render_map(sites = "data/lokaler.csv", county = "Skåne")
 #' }
 
-render_map <- function(sites = NULL, siteID = NULL,  county) {
+render_map <- function(sites = NULL, siteID = NULL, county = NULL) {
 
+  if (is.null(county)) {
+    stop("\n\n'county' is empty! \nYou must state in which county the locales are situated")
+  }
   # set site source
   if (is.null(sites)) {
     site <- lokaler
