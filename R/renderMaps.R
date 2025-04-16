@@ -11,7 +11,9 @@
 
 render_locals <- function(siteid, sites, county) {
 
-  quarto_render(input = "./Transect_maps.qmd",
+  quartoinput <- system.file("extdata", "Transect_maps.qmd", package = "surveymapR")
+
+  quarto_render(input = quartoinput,
                 output_format = "all",
                 execute_params = list(faltid = siteid,
                                       dat = sites,
@@ -77,6 +79,7 @@ render_map <- function(sites = NULL, siteID = NULL, county = NULL) {
       filter(sit_aggregated %in% siteID) %>%
       pull()
   }
+
 
   # run trough all site-ids and sites
   walk(siteid, possibly(~render_locals(siteid=.x, sites=sites, county = county), otherwise = "Redo"), .progress = "Creating maps") # The 'possibly' hinder the function to stop if some of the site maps does not work
