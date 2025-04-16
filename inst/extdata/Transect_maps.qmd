@@ -49,7 +49,9 @@ library(stringr)
 #| warning: false
 #| error: false
 
-load("R/sysdata.rda")
+
+
+lazyLoad(file.path(system.file("R", package = "surveymapR"), "sysdata"))
 
 if (is.na(params$dat)) {
   dat <- lokaler
