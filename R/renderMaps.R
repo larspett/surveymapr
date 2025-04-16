@@ -17,13 +17,14 @@ render_locals <- function(siteid, sites, county) {
                 output_format = "all",
                 execute_params = list(faltid = siteid,
                                       dat = sites,
-                                      lankod = county),
+                                      lankod = county
+                                      ),
                 output_file = glue::glue("{siteid}.pdf"), ##TODO: Perhaps add the site name instead of ID in the pdf name
                 cache_refresh = T)
 
-  cache <- list.files(path = "Transect_maps_cache/", full.names = T, recursive = T)
-  mapfile <- list.files(path = "Transect_maps_files/", full.names = T, recursive = T)
-  mapsfile <- list.files(path = "maps/", full.names = T, recursive = T)
+  cache <- list.files(path = system.file("extdata/Transect_maps_cache/", package = "surveymapR"), full.names = T, recursive = T)
+  mapfile <- list.files(path = system.file("extdata/Transect_maps_files/", package = "surveymapR"), full.names = T, recursive = T)
+  mapsfile <- list.files(path = system.file("extdata/maps", package = "surveymapR"), full.names = T, recursive = T)
 
     file.remove(cache)
     file.remove(mapfile)
