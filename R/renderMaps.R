@@ -51,7 +51,7 @@ render_locals <- function(siteid, sites, county) {
 #'
 #' @examples
 #' \dontrun{
-#' render_map("data/lokaler.csv")
+#' render_map(sites = "data/lokaler.csv", county = "Skåne")
 #' }
 
 render_map <- function(sites = NULL, siteID = NULL,  county) {
