@@ -4,7 +4,7 @@
 \alias{render_map}
 \title{Render the Maps for Your Sites}
 \usage{
-render_map(sites = NULL, siteID = NULL, county)
+render_map(sites = NULL, siteID = NULL, county = NULL)
 }
 \arguments{
 \item{sites}{a path to a semi-colon separated csv file with sites with transect or
@@ -24,6 +24,6 @@ maps from this.
 }
 \examples{
 \dontrun{
-render_map("data/lokaler.csv")
+render_map(sites = "data/lokaler.csv", county = "Skåne")
 }
 }

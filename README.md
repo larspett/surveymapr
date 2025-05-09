@@ -33,8 +33,8 @@ remotes::install_gitlab('universitetet/surveymapr')
 
 Your csv file with WKT coordinates should contain the variables
 `site_uid`, `sit_aggregate`, `sit_name`,`geo_seg_sequence`, and
-`geo_geom`. These are coming from the SQL-database of butterfly
-monitoring data.
+`geo_geom`. These are coming from the SQL-database of the Swedish
+Butterfly Monitoring data.
 
 ``` r
 
@@ -42,7 +42,7 @@ render_map(sites = "data/sites.csv", county = "Skåne")
 ```
 
 If the function fail to render all maps, try to run it with each single
-of the site ids. Someties it works if you run it again.
+of the site ids. Sometimes it works if you run it again.
 
 ``` r
 
