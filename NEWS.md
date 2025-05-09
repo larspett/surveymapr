@@ -1,5 +1,13 @@
 # surveymapR
 
+## Version 0.3.0
+
+* Fix bug where pdf template `Transect_maps.qmd` was not accessible to package when built. 
+* `Transect_maps.qmd` is now part of internal data in package.
+* Small fixes of examples
+* Add an `error` if county is not specified
+
+
 ## Version 0.2.0
 
 * Small fixes with package build and ignore files
