@@ -24,6 +24,7 @@ params:
   dat: NA
  # siteText: "Ekön Finspång"
   lankod: "Östergötlands"
+  directory: NA
 ---
 
 ```{r setup, include=FALSE}
@@ -37,6 +38,7 @@ library(leaflet.providers)
 library(mapview)
 library(readr)
 library(dplyr)
+library(glue)
 library(tidyr)
 library(stringr)
 
@@ -145,13 +147,13 @@ if (ncol(trans %>% st_coordinates())>3) {
 }
 
 ```
-
 # Slingor **`r sitelabel`**
 
 ```{r out.height='100%', out.width='100%'}
 #| label: "Slingelement"
 #| include: true
 #| fig-pos: H
+
 
 m <- leaflet(options = leafletOptions(zoomControl = FALSE, attributionControl = FALSE)) %>%
   addTiles() %>% 
@@ -177,9 +179,9 @@ m <- leaflet(options = leafletOptions(zoomControl = FALSE, attributionControl = 
  # webshot2::webshot(url = "maps/m.html", file = "maps/Slingor.png", vwidth = 800, vheight = 800)
 
 # 
-mapshot2(m, url = "maps/m.html", file = "maps/Slingor.png", remove_controls = c("zoomControl", "layersControl", "homeButton", "drawToolbar", "easyButton"), vwidth = 800, vheight = 900)
+mapshot2(m, url = glue("{params$directory}/m.html"), file = glue("{params$directory}/Slingor.png"), remove_controls = c("zoomControl", "layersControl", "homeButton", "drawToolbar", "easyButton"), vwidth = 800, vheight = 900)
 # 
-knitr::include_graphics("maps/Slingor.png")
+knitr::include_graphics(glue("{params$directory}/Slingor.png"))
 
 ```
 
@@ -213,9 +215,9 @@ m <- leaflet(options = leafletOptions(zoomControl = FALSE, attributionControl=FA
 # htmlwidgets::saveWidget(m, file = "maps/m.html")
 # webshot2::webshot(url = "maps/m.html", file = "maps/Transekter.png", vwidth = 800, vheight = 900)
 
-mapshot2(m, url = "maps/m.html", file = "maps/Transekter.png", remove_controls = c("zoomControl", "layersControl", "homeButton", "drawToolbar", "easyButton"), vwidth = 800, vheight = 900)
+mapshot2(m, url = glue("{params$directory}/m.html"), file = glue("{params$directory}/Transekter.png"), remove_controls = c("zoomControl", "layersControl", "homeButton", "drawToolbar", "easyButton"), vwidth = 800, vheight = 900)
 
-knitr::include_graphics("maps/Transekter.png")
+knitr::include_graphics(glue("{params$directory}/Transekter.png"))
 
 ```
 
@@ -245,9 +247,9 @@ m <- leaflet(cent, options = leafletOptions(zoomControl = FALSE, attributionCont
 # htmlwidgets::saveWidget(m, file = "maps/m.html")
 # webshot2::webshot(url = "maps/m.html", file = "maps/Overview.png", vwidth = 800, vheight = 800)
 
-mapshot2(m, url = "maps/m.html", file = "maps/Overview.png", remove_controls = c("zoomControl", "layersControl", "homeButton", "drawToolbar", "easyButton"), vwidth = 750, vheight = 750)
+mapshot2(m, url = glue("{params$directory}/m.html"), file = glue("{params$directory}/Overview.png"), remove_controls = c("zoomControl", "layersControl", "homeButton", "drawToolbar", "easyButton"), vwidth = 750, vheight = 750)
 
-knitr::include_graphics("maps/Overview.png")
+knitr::include_graphics(glue("{params$directory}/Overview.png"))
 
 ```
 
@@ -272,9 +274,9 @@ m <- leaflet(LAN, options = leafletOptions(zoomControl = FALSE, attributionContr
 # htmlwidgets::saveWidget(m, file = "maps/m.html")
 # webshot2::webshot(url = "maps/m.html", file = "maps/Lan.png", vwidth = 1000, vheight = 1000)
 
-mapshot2(m, url = "maps/m.html", file = "maps/Lan.png", remove_controls = c("zoomControl", "layersControl", "homeButton", "drawToolbar", "easyButton"), vwidth = 750, vheight = 750)
+mapshot2(m, url = glue("{params$directory}/m.html"), file = glue("{params$directory}/Lan.png"), remove_controls = c("zoomControl", "layersControl", "homeButton", "drawToolbar", "easyButton"), vwidth = 750, vheight = 750)
 
-knitr::include_graphics("maps/Lan.png")
+knitr::include_graphics(glue("{params$directory}/Lan.png"))
 
 ```
 
@@ -320,8 +322,8 @@ m <- leaflet(options = leafletOptions(zoomControl = FALSE, attributionControl = 
 # htmlwidgets::saveWidget(m, file = "maps/m.html")
 # webshot2::webshot(url = "maps/m.html", file = "maps/TransSlingor.png", vwidth = 800, vheight = 800)
 
-mapshot2(m, url = "maps/m.html", file = "maps/TransSlingor.png", remove_controls = c("zoomControl", "layersControl", "homeButton", "drawToolbar", "easyButton"), vwidth = 800, vheight = 700)
-knitr::include_graphics("maps/TransSlingor.png")
+mapshot2(m, url = glue("{params$directory}/m.html"), file = glue("{params$directory}/TransSlingor.png"), remove_controls = c("zoomControl", "layersControl", "homeButton", "drawToolbar", "easyButton"), vwidth = 800, vheight = 700)
+knitr::include_graphics(glue("{params$directory}/TransSlingor.png"))
 
 ```
 
