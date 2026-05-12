@@ -2,18 +2,12 @@
 format:
   pdf:
     fig-align: center
-    fig-pos: H
     geometry:
-      - top=1mm     # margin settings
+      - top=1mm
       - bottom=1mm
       - left=1mm
       - right=1mm
     papersize: a4
-crossref:
-  fig-title: Figur
-  tbl-title: Tabell
-  fig-prefix: Figur
-  tbl-prefix: Tabell
 execute: 
   echo: false
   error: false
@@ -22,47 +16,39 @@ execute:
 params:
   faltid: NA
   dat: NA
- # siteText: "Ekön Finspång"
   lankod: "Östergötlands"
   directory: NA
 ---
 
 ```{r setup, include=FALSE}
 library(sf)
-#library(magick)
 library(leaflet)
 library(leaflet.providers)
-# library(widgetframe)
-# library(htmlwidgets)
-#library(webshot2)
 library(mapview)
 library(readr)
 library(dplyr)
 library(glue)
 library(tidyr)
 library(stringr)
-
 ```
 
 ```{r}
 #| label: "load data"
 #| include: false
-#| message: false
-#| warning: false
-#| error: false
 
-
-
-lazyLoad(file.path(system.file("R", package = "surveymapR"), "sysdata"))
+# FIX: replaced lazyLoad() — only works in fully compiled installs.
+# loadNamespace() triggers internal lazy-loading making sysdata available.
+loadNamespace("surveymapR")
+counties <- get("counties", envir = asNamespace("surveymapR"))
+lokaler  <- get("lokaler",  envir = asNamespace("surveymapR"))
 
 if (is.na(params$dat)) {
   dat <- lokaler
-}else {
+} else {
   dat <- read_csv2(params$dat)
 }
 
 tmp <- dat %>%
-  #filter(str_detect(sit_name, "Fölling.* (transekter 2$|slinga [1-2])|Ekön.*? slinga 1$|Bomhult.* transekter$", negate = T)) %>%  # Filter out the erroneous transekter and slinga in Föllingsö, Ekö and Bomhult
   filter(sit_aggregated == params$faltid) %>% 
   mutate(geo_geom = structure(geo_geom, class = "WKB"),
          geometry = st_as_sfc(geo_geom, EWKB = T, crs = 3006)) %>% 
@@ -79,86 +65,62 @@ sitelabel <- tmp %>%
   mutate(SiteText = str_remove(SiteText, " slinga.*| transekter.*")) %>% 
   distinct(SiteText) %>% 
   pull()
-
 ```
 
 ```{r}
 #| label: "Make data elements"
 
-# Bounding box
-bbo <- tmp %>% 
-  st_bbox()
+# Overall bounding box (used for overview map)
+bbo <- tmp %>% st_bbox()
 
-# Centroids
+# Centroid of overall bbox
 cent <- st_as_sfc(bbo, crs = st_crs(4326)) %>% 
   st_centroid() %>% 
   st_coordinates()
 
-lanC <- LAN %>% 
-  st_centroid() %>% 
-  st_coordinates()
-
-# Transects
-trans <- tmp %>% 
-  filter(str_detect(SiteText, "transekt"))
-  #filter(!str_detect(SiteText, "(2|3)$|sling.*"))
- #filter(str_detect(SiteText, "transekt.* 1"))
-
-# Slingor
-sling <- tmp %>%
-  filter(str_detect(SiteText, "sling"))
-  #filter(!str_detect(SiteText, "(2|3)$|transe.*"))
-  #filter(str_detect(SiteText, "sling.*? 3"))
-
+# Transects and slingor
+trans <- tmp %>% filter(str_detect(SiteText, "transekt"))
+sling <- tmp %>% filter(str_detect(SiteText, "sling"))
 
 # Endpoints of slinga
-if (ncol(sling %>% st_coordinates())>3) {
-  
-  slingend <- sling %>% 
-    st_coordinates() %>% 
-    as_tibble() %>% 
-    group_by(L2) %>% 
-    summarise(X = first(X), Y = first(Y))
-}else{
-  
-  slingend <- sling %>% 
-    st_coordinates() %>% 
-    as_tibble() %>% 
-    group_by(L1) %>% 
-    summarise(X = first(X), Y = first(Y))  
+if (ncol(sling %>% st_coordinates()) > 3) {
+  slingend <- sling %>% st_coordinates() %>% as_tibble() %>%
+    group_by(L2) %>% summarise(X = first(X), Y = first(Y))
+} else {
+  slingend <- sling %>% st_coordinates() %>% as_tibble() %>%
+    group_by(L1) %>% summarise(X = first(X), Y = first(Y))
 }
 
 # Endpoints of transekt
-if (ncol(trans %>% st_coordinates())>3) {
-  
-  
-  transend <- trans %>% 
-    st_coordinates() %>% 
-    as_tibble() %>% 
-    group_by(L2) %>% 
-    summarise(X = first(X), Y = first(Y))
-}else{
-  transend <- trans %>% 
-    st_coordinates() %>% 
-    as_tibble() %>% 
-    group_by(L1) %>% 
-    summarise(X = first(X), Y = first(Y))
-  
+if (ncol(trans %>% st_coordinates()) > 3) {
+  transend <- trans %>% st_coordinates() %>% as_tibble() %>%
+    group_by(L2) %>% summarise(X = first(X), Y = first(Y))
+} else {
+  transend <- trans %>% st_coordinates() %>% as_tibble() %>%
+    group_by(L1) %>% summarise(X = first(X), Y = first(Y))
 }
-
 ```
-# Slingor **`r sitelabel`**
 
-```{r out.height='100%', out.width='100%'}
+
+
+```{r}
 #| label: "Slingelement"
 #| include: true
-#| fig-pos: H
+#| fig-pos: "!"
+#| out-width: "100%"
 
+# Passing sling as data argument makes leaflet auto-fit to its extent
+bbo_sling <- st_bbox(sling)
+pad <- 0.0005  # ~50m padding in degrees
+m <- leaflet(options = leafletOptions(zoomControl = FALSE,
+                                      attributionControl = FALSE)) %>%
+  addTiles() %>%
+  addProviderTiles("Esri.WorldImagery") %>%
+  fitBounds(lng1 = as.numeric(bbo_sling["xmin"]) - pad,
+            lat1 = as.numeric(bbo_sling["ymin"]) - pad,
+            lng2 = as.numeric(bbo_sling["xmax"]) + pad,
+            lat2 = as.numeric(bbo_sling["ymax"]) + pad) %>%
 
-m <- leaflet(options = leafletOptions(zoomControl = FALSE, attributionControl = FALSE)) %>%
-  addTiles() %>% 
-  addProviderTiles("Esri.WorldImagery") %>% 
-  #  addAwesomeMarkers(data = slingend, lng = ~lng, lat = ~lat) %>% 
   addPolylines(data = sling, color = "#ffff31",
                label = sling$segment,
                labelOptions = labelOptions(textsize = "16px",
@@ -166,165 +128,170 @@ m <- leaflet(options = leafletOptions(zoomControl = FALSE, attributionControl = 
                                            style = list("font-weight" = "bold",
                                                         background = rgb(255,255,255,0,maxColorValue = 255),
                                                         color = "white")),
-               opacity = 0.6,
-               weight = 5) %>%
+               opacity = 0.6, weight = 5) %>%
   addCircleMarkers(data = slingend, lng = ~X, lat = ~Y,
-                   radius = 7,
-                   color = "orange",
-                   stroke = FALSE, fillOpacity = 1
-  ) %>% 
+                   radius = 7, color = "orange",
+                   stroke = FALSE, fillOpacity = 1) %>% 
   addScaleBar(position = "topright", options = scaleBarOptions(imperial = F))
 
- # htmlwidgets::saveWidget(m, file = "maps/m.html")
- # webshot2::webshot(url = "maps/m.html", file = "maps/Slingor.png", vwidth = 800, vheight = 800)
+mapshot2(m,
+         url  = glue("{params$directory}/m.html"),
+         file = glue("{params$directory}/Slingor.png"),
+         remove_controls = c("zoomControl","layersControl","homeButton",
+                             "drawToolbar","easyButton"),
+         vwidth = 800, vheight = 900)
 
-# 
-mapshot2(m, url = glue("{params$directory}/m.html"), file = glue("{params$directory}/Slingor.png"), remove_controls = c("zoomControl", "layersControl", "homeButton", "drawToolbar", "easyButton"), vwidth = 800, vheight = 900)
-# 
+# Add white header strip with black label above the map
+library(magick)
+img  <- image_read(glue("{params$directory}/Slingor.png"))
+iw   <- image_info(img)$width
+header <- image_blank(iw, 60L, color = "white") %>%
+  image_annotate(paste("Slingor", sitelabel),
+                 size = 36, weight = 700, color = "black",
+                 gravity = "West", location = "+16+0")
+img <- image_append(c(header, img), stack = TRUE)
+image_write(img, glue("{params$directory}/Slingor.png"))
+
 knitr::include_graphics(glue("{params$directory}/Slingor.png"))
-
 ```
 
 
-# Transekter **`r sitelabel`**
 
-```{r out.height='100%', out.width='100%'}
+```{r}
 #| label: "Transektelement"
 #| include: true
-#| fig-pos: H
+#| fig-pos: "!"
+#| out-width: "100%"
 
-# ggmap(map) +
-#   geom_sf(data = tmp, inherit.aes = F)
-
-m <- leaflet(options = leafletOptions(zoomControl = FALSE, attributionControl=FALSE)) %>%
-  addTiles() %>% 
+bbo_trans <- st_bbox(trans)
+m <- leaflet(options = leafletOptions(zoomControl = FALSE,
+                                      attributionControl = FALSE)) %>%
+  addTiles() %>%
   addProviderTiles("Esri.WorldImagery") %>%
-  addPolylines(data = trans,
-               color = "#b7c9e2",
+  fitBounds(lng1 = as.numeric(bbo_trans["xmin"]) - pad,
+            lat1 = as.numeric(bbo_trans["ymin"]) - pad,
+            lng2 = as.numeric(bbo_trans["xmax"]) + pad,
+            lat2 = as.numeric(bbo_trans["ymax"]) + pad) %>%
+  addPolylines(data = trans, color = "#b7c9e2",
                label = trans$segment,
-               noClip = T,
+               noClip = TRUE,
                labelOptions = labelOptions(textsize = "16px",
                                            noHide = TRUE,
                                            style = list("font-weight" = "bold",
                                                         background = rgb(255,255,255,0.1,maxColorValue = 255),
                                                         color = "white")),
-               opacity = 0.8,
-               weight = 6) %>% 
+               opacity = 0.8, weight = 6) %>% 
   addScaleBar(position = "topright", options = scaleBarOptions(imperial = F))
 
-# htmlwidgets::saveWidget(m, file = "maps/m.html")
-# webshot2::webshot(url = "maps/m.html", file = "maps/Transekter.png", vwidth = 800, vheight = 900)
+mapshot2(m,
+         url  = glue("{params$directory}/m.html"),
+         file = glue("{params$directory}/Transekter.png"),
+         remove_controls = c("zoomControl","layersControl","homeButton",
+                             "drawToolbar","easyButton"),
+         vwidth = 800, vheight = 900)
 
-mapshot2(m, url = glue("{params$directory}/m.html"), file = glue("{params$directory}/Transekter.png"), remove_controls = c("zoomControl", "layersControl", "homeButton", "drawToolbar", "easyButton"), vwidth = 800, vheight = 900)
+# Add white header strip with black label above the map
+img  <- image_read(glue("{params$directory}/Transekter.png"))
+iw   <- image_info(img)$width
+header <- image_blank(iw, 60L, color = "white") %>%
+  image_annotate(paste("Transekter", sitelabel),
+                 size = 36, weight = 700, color = "black",
+                 gravity = "West", location = "+16+0")
+img <- image_append(c(header, img), stack = TRUE)
+image_write(img, glue("{params$directory}/Transekter.png"))
 
 knitr::include_graphics(glue("{params$directory}/Transekter.png"))
-
 ```
 
-
-::: {layout="[[50,-1,49], [100]]"}
-
-```{r out.height='100%', out.width='100%'}
-#| label: "Översiktskarta"
+```{r}
+#| label: "Översikt och transekter"
+#| out-width: "100%"
 #| include: true
-#| fig-pos: H
 
-
-m <- leaflet(cent, options = leafletOptions(zoomControl = FALSE, attributionControl=T)) %>%
-  addTiles() %>% 
-  addProviderTiles("Thunderforest.Landscape") %>% #Thunderforest.Landscape
-  setView(lng = cent[1], lat = cent[2],  zoom = 12) %>% 
+# Render Overview map
+m <- leaflet(options = leafletOptions(zoomControl = FALSE, attributionControl = TRUE)) %>%
+  addTiles() %>%
+  setView(lng = cent[1], lat = cent[2], zoom = 12) %>%
   addMarkers(lng = cent[1], lat = cent[2]) %>% 
   addPolylines(data = sling, color = "orange", weight = 2.5) %>%
   addPolylines(data = trans, color = "orange", weight = 2.5) %>% 
-  addLabelOnlyMarkers(lng = bbo[3]+0.087, lat = bbo[4]+0.035,
+  addLabelOnlyMarkers(lng = bbo["xmax"] + 0.05, lat = bbo["ymax"] + 0.02,
                       label = sitelabel,
-                      labelOptions = labelOptions(textsize = "40px",
-                                                 noHide = TRUE,
-                                                 style = list("font-weight" = "bold"))) %>% 
+                      labelOptions = labelOptions(textsize = "40px", noHide = TRUE,
+                        style = list("font-weight" = "bold",
+                                     "background-color" = "white",
+                                     "border-color" = "transparent",
+                                     "box-shadow" = "none"))) %>%
   addScaleBar(position = "topright", options = scaleBarOptions(imperial = F))
+mapshot2(m, url = glue("{params$directory}/m.html"),
+         file = glue("{params$directory}/Overview.png"),
+         remove_controls = c("zoomControl","layersControl","homeButton","drawToolbar","easyButton"),
+         vwidth = 750, vheight = 750)
 
-# htmlwidgets::saveWidget(m, file = "maps/m.html")
-# webshot2::webshot(url = "maps/m.html", file = "maps/Overview.png", vwidth = 800, vheight = 800)
-
-mapshot2(m, url = glue("{params$directory}/m.html"), file = glue("{params$directory}/Overview.png"), remove_controls = c("zoomControl", "layersControl", "homeButton", "drawToolbar", "easyButton"), vwidth = 750, vheight = 750)
-
-knitr::include_graphics(glue("{params$directory}/Overview.png"))
-
-```
-
-```{r out.height='100%', out.width='100%'}
-#| label: "Länskarta"
-#| include: true
-#| fig-pos: H
-
-m <- leaflet(LAN, options = leafletOptions(zoomControl = FALSE, attributionControl = T)) %>%
+# Render County map
+m <- leaflet(LAN, options = leafletOptions(zoomControl = FALSE, attributionControl = TRUE)) %>%
   addTiles() %>% 
-  addProviderTiles("Thunderforest.Landscape") %>%
-  #setView(lng = lanC[1], lat = lanC[2],  zoom = 9) %>% 
   addPolylines(color = "red", weight = 4) %>% 
   addMarkers(lng = cent[1], lat = cent[2],
              label = sitelabel,
-             labelOptions = labelOptions(textsize = "14px",
-                                         noHide = T,
-                                         offset = c(30,-55),
+             labelOptions = labelOptions(textsize = "22px", noHide = TRUE,
+                                         offset = c(15, -45),
                                          style = list("font-weight" = "bold"))) %>% 
   addScaleBar(position = "topright", options = scaleBarOptions(imperial = F))
+mapshot2(m, url = glue("{params$directory}/m.html"),
+         file = glue("{params$directory}/Lan.png"),
+         remove_controls = c("zoomControl","layersControl","homeButton","drawToolbar","easyButton"),
+         vwidth = 750, vheight = 750)
 
-# htmlwidgets::saveWidget(m, file = "maps/m.html")
-# webshot2::webshot(url = "maps/m.html", file = "maps/Lan.png", vwidth = 1000, vheight = 1000)
-
-mapshot2(m, url = glue("{params$directory}/m.html"), file = glue("{params$directory}/Lan.png"), remove_controls = c("zoomControl", "layersControl", "homeButton", "drawToolbar", "easyButton"), vwidth = 750, vheight = 750)
-
-knitr::include_graphics(glue("{params$directory}/Lan.png"))
-
-```
-
-
-```{r out.height='100%', out.width='100%'}
-#| label: "Slingor och transekter"
-#| include: true
-#| fig-pos: H
-
-m <- leaflet(options = leafletOptions(zoomControl = FALSE, attributionControl = FALSE)) %>% # Remove zoom controls and attribution text 
-  addTiles() %>% 
-  addProviderTiles("Esri.WorldImagery") %>% 
-  addPolylines(data = sling,
-               color = "#ffff31", # Colour of the line element
-               label = sling$segment, # Label text from data
-               labelOptions = labelOptions(textsize = "12px", # Make text larger
-                                           noHide = TRUE, # Make labels show without clicking them
-                                           style = list("font-weight" = "bold", # Make label text bold
-                                                        background = rgb(255,255,255,0.1,maxColorValue = 255), # Make label box background transparent
-                                                        color = "white"),), # Color of label text
-               opacity = 0.8, # Make line elements semi-transparent
-               weight = 5) %>% # Size of lines
-  addPolylines(data = trans,
-               color = "#b7c9e2",
-               label = trans$segment,
-               labelOptions = labelOptions(textsize = "12px",
-                                           noHide = TRUE,
-                                           #offset = c(20,-10),
-                                           style = list("font-weight" = "bold",
-                                                        background = rgb(255,255,255,0.1,maxColorValue = 255),
-                                                        color = "white")),
-               opacity = 0.8,
-               weight = 6) %>% 
-  addCircleMarkers(data = slingend, lng = ~X, lat = ~Y, # Data and coordinates taken from data
-                   radius = 7, # Size of circle
-                   color = "orange", # Colour of circle
-                   stroke = FALSE, # Whether to make a "border" around the centre point
-                   fillOpacity = 1 # The opacity of centre
-  ) %>% 
+# Render combined slingor + transekter map
+m <- leaflet(options = leafletOptions(zoomControl = FALSE, attributionControl = FALSE)) %>%
+  addTiles() %>%
+  addProviderTiles("Esri.WorldImagery") %>%
+  fitBounds(lng1 = as.numeric(bbo["xmin"]),
+            lat1 = as.numeric(bbo["ymin"]),
+            lng2 = as.numeric(bbo["xmax"]),
+            lat2 = as.numeric(bbo["ymax"])) %>%
+  addPolylines(data = sling, color = "#ffff31", label = sling$segment,
+               labelOptions = labelOptions(textsize = "12px", noHide = TRUE,
+                 style = list("font-weight" = "bold",
+                              background = rgb(255,255,255,0.1,maxColorValue = 255),
+                              color = "white")),
+               opacity = 0.8, weight = 5) %>%
+  addPolylines(data = trans, color = "#b7c9e2", label = trans$segment,
+               labelOptions = labelOptions(textsize = "12px", noHide = TRUE,
+                 style = list("font-weight" = "bold",
+                              background = rgb(255,255,255,0.1,maxColorValue = 255),
+                              color = "white")),
+               opacity = 0.8, weight = 6) %>% 
+  addCircleMarkers(data = slingend, lng = ~X, lat = ~Y,
+                   radius = 7, color = "orange", stroke = FALSE, fillOpacity = 1) %>% 
   addScaleBar(position = "topright", options = scaleBarOptions(imperial = F))
+mapshot2(m, url = glue("{params$directory}/m.html"),
+         file = glue("{params$directory}/TransSlingor.png"),
+         remove_controls = c("zoomControl","layersControl","homeButton","drawToolbar","easyButton"),
+         vwidth = 900, vheight = 700)
 
-# BUG: These are necessary as mapview::mapshot() does not work for now (it uses webshot() instead of webshot2())
-# htmlwidgets::saveWidget(m, file = "maps/m.html")
-# webshot2::webshot(url = "maps/m.html", file = "maps/TransSlingor.png", vwidth = 800, vheight = 800)
+# Composite: side-by-side top row + full-width bottom row using magick
+library(magick)
+ov  <- image_read(glue("{params$directory}/Overview.png"))
+lan <- image_read(glue("{params$directory}/Lan.png"))
+bot <- image_read(glue("{params$directory}/TransSlingor.png"))
 
-mapshot2(m, url = glue("{params$directory}/m.html"), file = glue("{params$directory}/TransSlingor.png"), remove_controls = c("zoomControl", "layersControl", "homeButton", "drawToolbar", "easyButton"), vwidth = 800, vheight = 700)
-knitr::include_graphics(glue("{params$directory}/TransSlingor.png"))
+# Make top row: resize both to same height then join side by side
+h <- 750L
+ov  <- image_resize(ov,  glue("x{h}"))
+lan <- image_resize(lan, glue("x{h}"))
+h_gap <- image_blank(30L, h, color = "white")
+top_row <- image_append(c(ov, h_gap, lan), stack = FALSE)
 
+# Make bottom row: resize to match top row width
+top_w <- image_info(top_row)$width
+bot <- image_resize(bot, glue("{top_w}x"))
+
+# Add whitespace between top and bottom rows
+gap <- image_blank(top_w, 20L, color = "white")
+combined <- image_append(c(top_row, gap, bot), stack = TRUE)
+image_write(combined, glue("{params$directory}/OverviewPage.png"))
+
+knitr::include_graphics(glue("{params$directory}/OverviewPage.png"))
 ```
-
-:::

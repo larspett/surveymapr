@@ -6,6 +6,8 @@
 #'   and points.
 #' @param county character; the county where the survey take place
 #' @param output the output directory path, default to working directory
+#' @param sep character; the delimiter used in the csv file. If NULL (default),
+#'   the delimiter is auto-detected from the first line of the file.
 #' @import quarto
 #' @import glue
 #'
@@ -24,12 +26,11 @@ render_locals <- function(siteid, sites, county, output = getwd()) {
                 output_file = glue::glue("{siteid}.pdf"), ##TODO: Perhaps add the site name instead of ID in the pdf name
                 cache_refresh = T)
 
-  # cache <- list.files(path = system.file("extdata/Transect_maps_cache/", package = "surveymapR"), full.names = T, recursive = T)
-  # mapfile <- list.files(path = system.file("extdata/Transect_maps_files/", package = "surveymapR"), full.names = T, recursive = T)
-  # mapsfile <- list.files(path = system.file("extdata/maps", package = "surveymapR"), full.names = T, recursive = T)
   cache <- list.files(path = glue("{output}/Transect_maps_cache"), full.names = T, recursive = T)
   mapfile <- list.files(path = glue("{output}/Transect_maps_files"), full.names = T, recursive = T)
-  mapsfile <- list.files(path = glue("{output}"), pattern = ".png|.html|.qmd", full.names = T, recursive = T)
+  # FIX: removed .qmd from pattern (was deleting the template after first site)
+  # FIX: use anchored regex to avoid partial matches
+  mapsfile <- list.files(path = glue("{output}"), pattern = "\\.png$|\\.html$", full.names = T, recursive = T)
 
   file.remove(cache)
   file.remove(mapfile)
@@ -43,16 +44,19 @@ render_locals <- function(siteid, sites, county, output = getwd()) {
 #' This function takes a list of sites with coordinates of transects, or points and makes
 #' maps from this.
 #'
-#' @param sites a path to a semi-colon separated csv file with sites with transect or
-#'   point coordinates in WKT format
+#' @param sites a path to a csv file with sites with transect or point coordinates
+#'   in WKT format. Accepts both semicolon-separated and comma-separated files;
+#'   the delimiter is auto-detected from the first line unless \code{sep} is specified.
 #' @param siteID optional; site id for the sites you want. If not given it use all id in
 #'   the `sites` file
 #' @param county character; the county name of the county your survey is situated in
 #' @param output the output directory path, default to working directory
+#' @param sep character; the delimiter used in the csv file (\code{";"} or \code{","}).
+#'   If \code{NULL} (default), the delimiter is auto-detected from the first line of the file.
 #'
 #' @import dplyr
 #' @import glue
-#' @importFrom readr read_csv2
+#' @importFrom readr read_delim
 #' @importFrom purrr walk possibly
 #'
 #' @return a pdf with an overview map and zoomed in maps on the transects or points.
@@ -64,16 +68,22 @@ render_locals <- function(siteid, sites, county, output = getwd()) {
 #' render_map(sites = "data/lokaler.csv", county = "Skåne")
 #' }
 
-render_map <- function(sites = NULL, siteID = NULL, county = NULL, output = getwd()) {
+render_map <- function(sites = NULL, siteID = NULL, county = NULL, output = getwd(), sep = NULL) {
 
   if (is.null(county)) {
     stop("\n\n'county' is empty! \nYou must state in which county the locales are situated")
   }
+
   # set site source
   if (is.null(sites)) {
     site <- lokaler
-  }else {
-    site <- read_csv2(sites)
+  } else {
+    # Auto-detect delimiter if not specified
+    if (is.null(sep)) {
+      first_line <- readLines(sites, n = 1)
+      sep <- ifelse(grepl(";", first_line), ";", ",")
+    }
+    site <- read_delim(sites, delim = sep, show_col_types = FALSE)
   }
 
   # Set site ids
@@ -94,4 +104,3 @@ render_map <- function(sites = NULL, siteID = NULL, county = NULL, output = getw
   walk(siteid, possibly(~render_locals(siteid=.x, sites=sites, county = county, output = output), otherwise = "Redo"), .progress = "Creating maps") # The 'possibly' hinder the function to stop if some of the site maps does not work
 
 }
-
