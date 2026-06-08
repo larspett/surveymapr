@@ -1,51 +1,114 @@
-README
-================
-
-<!-- README.md is generated from README.Rmd. Please edit that file -->
-
 # surveymapR
 
 <!-- badges: start -->
-
-![](https://img.shields.io/gitlab/v/release/universitetet%2Fsurveymapr?sort=date&display_name=release&date_order_by=released_at&style=plastic&logo=R&logoColor=%23276DC3&logoSize=auto&label=surveymapR&labelColor=green)
-![](https://img.shields.io/gitlab/license/universitetet%2Fsurveymapr?style=plastic&logo=GNU&logoColor=%23A42E2B&logoSize=auto&label=License&labelColor=blue&color=orange)
-
-![](https://img.shields.io/gitlab/issues/open/universitetet%2Fsurveymapr?style=plastic&logo=gitlab&logoColor=%23FC6D26&logoSize=auto&color=green)
+![](https://img.shields.io/github/v/release/larspett/surveymapr?sort=date&display_name=release&style=plastic&logo=R&logoColor=%23276DC3&label=surveymapR&labelColor=green)
+![](https://img.shields.io/github/license/larspett/surveymapr?style=plastic&logo=GNU&logoColor=%23A42E2B&label=License&labelColor=blue&color=orange)
+![](https://img.shields.io/github/issues/larspett/surveymapr?style=plastic&logo=github&color=green)
 <!-- badges: end -->
 
-This package creates maps with transect and slinga surveys and a
-overview map with both, for the Swedish Butterfly Monitoring Project. It
-take the coordinates from a csv files, should be semi-colon separated,
-with WKT coordinates and the local id and aggregate id, also the local
-name, stating if it is a transect or slinga.
+`surveymapR` generates field-ready PDF maps for butterfly survey sites. Given a CSV export of site coordinates, it produces a two-page PDF per site: a portrait overview collage (locality map, county map, and combined aerial) and — optionally — a landscape aerial on page 2 for sites where that gives a better view.
+
+Originally developed by Georg Andersson for the Swedish Butterfly Monitoring Scheme (SeBMS). Extended to support multiple datasources and monitoring programmes.
+
+---
 
 ## Installation
 
-You can install the package from GitLab with the `install_gitlab()`
-function from `remotes` package.
-
-``` r
-
-remotes::install_gitlab('universitetet/surveymapr')
+```r
+remotes::install_github("larspett/surveymapr")
 ```
+
+---
+
+## Input data
+
+Your CSV must contain these columns:
+
+| Column | Description |
+|--------|-------------|
+| `sit_uid` | Unique site ID |
+| `sit_aggregated` | Aggregate site ID (used for grouping) |
+| `sit_name` | Site name (includes type suffix for slinga+transekt datasources) |
+| `sit_type` | Site type code |
+| `sit_typ_datasourceid` | Datasource ID — determines display mode |
+| `geo_seg_sequence` | Segment sequence number |
+| `geo_geom` | Geometry in EWKB format (SWEREF99TM / EPSG:3006) |
+
+Both semicolon- and comma-separated files are accepted; the delimiter is auto-detected.
+
+---
+
+## Supported datasources
+
+The datasource ID (`sit_typ_datasourceid`) is read from the data and determines how features are rendered. All rows in a file must share the same datasource.
+
+| Mode | Datasource IDs |
+|------|---------------|
+| Slinga only | 54, 55, 56, 66, 67, 84, 118, 131, 167 |
+| Slinga + Transekt | 59, 60, 61, 63, 65, 81, 129 |
+| Transekt only | 57 |
+
+Unknown or mixed datasources will produce an informative error.
+
+---
 
 ## Usage
 
-Your csv file with WKT coordinates should contain the variables
-`site_uid`, `sit_aggregate`, `sit_name`,`geo_seg_sequence`, and
-`geo_geom`. These are coming from the SQL-database of the Swedish
-Butterfly Monitoring data.
+### Render all sites in a file
 
-``` r
-
-render_map(sites = "data/sites.csv", county = "Skåne")
+```r
+render_map(sites = "data/lokaler.csv", county = "Skåne")
 ```
 
-If the function fail to render all maps, try to run it with each single
-of the site ids. Sometimes it works if you run it again.
+### Render specific sites
 
-``` r
-
-render_map(siteID = 1864, sites = "data/sites.csv", county = "Östergötland")
-render_map(siteID = 1856, sites = "data/sites.csv", county = "Östergötland")
+```r
+render_map(sites = "data/lokaler.csv", county = "Skåne", siteID = c(4420, 4429))
 ```
+
+### Add a landscape page 2
+
+For slinga-only datasources, a second page with the aerial map in landscape orientation can be added. This replaces the portrait Slingor page and gives a better view for wide sites.
+
+```r
+render_map(sites = "data/lokaler.csv", county = "Skåne", siteID = 4429, landscape_p2 = TRUE)
+```
+
+`landscape_p2` is silently ignored for slinga+transekt and transekt-only datasources.
+
+### Specify output directory
+
+```r
+render_map(sites = "data/lokaler.csv", county = "Skåne", output = "output/maps")
+```
+
+---
+
+## Output
+
+One PDF per `sit_aggregated` ID, named `<sit_aggregated>.pdf`, written to the output directory.
+
+**Portrait only (`landscape_p2 = FALSE`, default):**
+- Page 1: collage of overview map, county map, and combined aerial
+
+**With landscape page 2 (`landscape_p2 = TRUE`, slinga-only datasources):**
+- Page 1: portrait collage
+- Page 2: landscape aerial with site name header
+
+For slinga+transekt datasources, individual Slingor and Transekter aerial maps are included as additional pages before the collage.
+
+---
+
+## Dependencies
+
+Requires R ≥ 4.1.0. Key dependencies: `sf`, `leaflet`, `mapview`, `magick`, `quarto`, `pdftools`.
+
+A working installation of [Quarto](https://quarto.org) and a Chromium-based browser (used by `webshot2` for map rendering) are also required.
+
+---
+
+## Notes
+
+- For slinga+transekt datasources, feature type (slinga vs transekt) is determined by the `sit_name` suffix. This is a known data model limitation — a dedicated type column is planned.
+- Punktlokal datasources (polygon geometry) are not yet supported.
+- When rendering large batches, a short delay is introduced between sites to allow the headless browser to release cleanly.

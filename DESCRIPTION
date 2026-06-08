@@ -1,7 +1,7 @@
 Package: surveymapR
 Type: Package
 Title: Create Maps Around Survey Transects or Points
-Version: 0.5.1
+Version: 0.5.2
 Author: Georg Andersson
 Maintainer: Georg Andersson <georg.andersson@biol.lu.se>
 Description: This package creates maps that show an overview and site-specific detail of
