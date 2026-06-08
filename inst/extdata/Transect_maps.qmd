@@ -45,7 +45,9 @@ lokaler  <- get("lokaler",  envir = asNamespace("surveymapR"))
 if (is.na(params$dat)) {
   dat <- lokaler
 } else {
-  dat <- read_csv2(params$dat)
+  first_line <- readLines(params$dat, n = 1)
+sep <- ifelse(grepl(";", first_line), ";", ",")
+dat <- read_delim(params$dat, delim = sep, show_col_types = FALSE)
 }
 
 tmp <- dat %>%
@@ -82,22 +84,35 @@ cent <- st_as_sfc(bbo, crs = st_crs(4326)) %>%
 trans <- tmp %>% filter(str_detect(SiteText, "transekt"))
 sling <- tmp %>% filter(str_detect(SiteText, "sling"))
 
+# If neither keyword found (standard SeBMS data), treat all features as slingor
+if (nrow(sling) == 0 && nrow(trans) == 0) {
+  sling <- tmp
+}
+
 # Endpoints of slinga
-if (ncol(sling %>% st_coordinates()) > 3) {
-  slingend <- sling %>% st_coordinates() %>% as_tibble() %>%
-    group_by(L2) %>% summarise(X = first(X), Y = first(Y))
+if (nrow(sling) > 0) {
+  if (ncol(sling %>% st_coordinates()) > 3) {
+    slingend <- sling %>% st_coordinates() %>% as.data.frame() %>%
+      group_by(L2) %>% summarise(X = first(X), Y = first(Y))
+  } else {
+    slingend <- sling %>% st_coordinates() %>% as.data.frame() %>%
+      group_by(L1) %>% summarise(X = first(X), Y = first(Y))
+  }
 } else {
-  slingend <- sling %>% st_coordinates() %>% as_tibble() %>%
-    group_by(L1) %>% summarise(X = first(X), Y = first(Y))
+  slingend <- data.frame(X = numeric(0), Y = numeric(0))
 }
 
 # Endpoints of transekt
-if (ncol(trans %>% st_coordinates()) > 3) {
-  transend <- trans %>% st_coordinates() %>% as_tibble() %>%
-    group_by(L2) %>% summarise(X = first(X), Y = first(Y))
+if (nrow(trans) > 0) {
+  if (ncol(trans %>% st_coordinates()) > 3) {
+    transend <- trans %>% st_coordinates() %>% as.data.frame() %>%
+      group_by(L2) %>% summarise(X = first(X), Y = first(Y))
+  } else {
+    transend <- trans %>% st_coordinates() %>% as.data.frame() %>%
+      group_by(L1) %>% summarise(X = first(X), Y = first(Y))
+  }
 } else {
-  transend <- trans %>% st_coordinates() %>% as_tibble() %>%
-    group_by(L1) %>% summarise(X = first(X), Y = first(Y))
+  transend <- data.frame(X = numeric(0), Y = numeric(0))
 }
 ```
 
@@ -105,11 +120,12 @@ if (ncol(trans %>% st_coordinates()) > 3) {
 
 ```{r}
 #| label: "Slingelement"
-#| include: true
+#| include: !expr nrow(sling) > 0
 #| fig-pos: "!"
 #| out-width: "100%"
 
-# Passing sling as data argument makes leaflet auto-fit to its extent
+# Only render if sling has features
+if (nrow(sling) > 0) {
 bbo_sling <- st_bbox(sling)
 pad <- 0.0005  # ~50m padding in degrees
 m <- leaflet(options = leafletOptions(zoomControl = FALSE,
@@ -151,18 +167,18 @@ header <- image_blank(iw, 60L, color = "white") %>%
                  gravity = "West", location = "+16+0")
 img <- image_append(c(header, img), stack = TRUE)
 image_write(img, glue("{params$directory}/Slingor.png"))
+} # end if nrow(sling) > 0
 
-knitr::include_graphics(glue("{params$directory}/Slingor.png"))
+if (nrow(sling) > 0) knitr::include_graphics(glue("{params$directory}/Slingor.png"))
 ```
-
-
 
 ```{r}
 #| label: "Transektelement"
-#| include: true
+#| include: !expr nrow(trans) > 0
 #| fig-pos: "!"
 #| out-width: "100%"
 
+if (nrow(trans) > 0) {
 bbo_trans <- st_bbox(trans)
 m <- leaflet(options = leafletOptions(zoomControl = FALSE,
                                       attributionControl = FALSE)) %>%
@@ -199,8 +215,9 @@ header <- image_blank(iw, 60L, color = "white") %>%
                  gravity = "West", location = "+16+0")
 img <- image_append(c(header, img), stack = TRUE)
 image_write(img, glue("{params$directory}/Transekter.png"))
+} # end if nrow(trans) > 0
 
-knitr::include_graphics(glue("{params$directory}/Transekter.png"))
+if (nrow(trans) > 0) knitr::include_graphics(glue("{params$directory}/Transekter.png"))
 ```
 
 ```{r}
@@ -213,8 +230,8 @@ m <- leaflet(options = leafletOptions(zoomControl = FALSE, attributionControl = 
   addTiles() %>%
   setView(lng = cent[1], lat = cent[2], zoom = 12) %>%
   addMarkers(lng = cent[1], lat = cent[2]) %>% 
-  addPolylines(data = sling, color = "orange", weight = 2.5) %>%
-  addPolylines(data = trans, color = "orange", weight = 2.5) %>% 
+  {if(nrow(sling)>0) addPolylines(., data = sling, color = "orange", weight = 2.5) else .} %>%
+  {if(nrow(trans)>0) addPolylines(., data = trans, color = "orange", weight = 2.5) else .} %>% 
   addLabelOnlyMarkers(lng = bbo["xmax"] + 0.05, lat = bbo["ymax"] + 0.02,
                       label = sitelabel,
                       labelOptions = labelOptions(textsize = "40px", noHide = TRUE,
@@ -251,20 +268,20 @@ m <- leaflet(options = leafletOptions(zoomControl = FALSE, attributionControl = 
             lat1 = as.numeric(bbo["ymin"]),
             lng2 = as.numeric(bbo["xmax"]),
             lat2 = as.numeric(bbo["ymax"])) %>%
-  addPolylines(data = sling, color = "#ffff31", label = sling$segment,
+  {if(nrow(sling)>0) addPolylines(., data = sling, color = "#ffff31", label = sling$segment,
                labelOptions = labelOptions(textsize = "12px", noHide = TRUE,
                  style = list("font-weight" = "bold",
                               background = rgb(255,255,255,0.1,maxColorValue = 255),
                               color = "white")),
-               opacity = 0.8, weight = 5) %>%
-  addPolylines(data = trans, color = "#b7c9e2", label = trans$segment,
+               opacity = 0.8, weight = 5) else .} %>%
+  {if(nrow(trans)>0) addPolylines(., data = trans, color = "#b7c9e2", label = trans$segment,
                labelOptions = labelOptions(textsize = "12px", noHide = TRUE,
                  style = list("font-weight" = "bold",
                               background = rgb(255,255,255,0.1,maxColorValue = 255),
                               color = "white")),
-               opacity = 0.8, weight = 6) %>% 
-  addCircleMarkers(data = slingend, lng = ~X, lat = ~Y,
-                   radius = 7, color = "orange", stroke = FALSE, fillOpacity = 1) %>% 
+               opacity = 0.8, weight = 6) else .} %>%
+  {if(nrow(slingend)>0) addCircleMarkers(., data = slingend, lng = ~X, lat = ~Y,
+                   radius = 7, color = "orange", stroke = FALSE, fillOpacity = 1) else .} %>%
   addScaleBar(position = "topright", options = scaleBarOptions(imperial = F))
 mapshot2(m, url = glue("{params$directory}/m.html"),
          file = glue("{params$directory}/TransSlingor.png"),
