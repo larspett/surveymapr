@@ -1,7 +1,7 @@
 Package: surveymapR
 Type: Package
 Title: Create Maps Around Survey Transects or Points
-Version: 0.4.0
+Version: 0.5.0
 Author: Georg Andersson
 Maintainer: Georg Andersson <georg.andersson@biol.lu.se>
 Description: This package creates maps that show an overview and site-specific detail of
@@ -25,7 +25,8 @@ Imports:
     readr,
     glue,
     quarto,
-    mapview
+    mapview,
+    pdftools
 Depends:
     R (>= 4.1.0)
 RoxygenNote: 7.3.3

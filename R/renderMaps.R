@@ -12,22 +12,36 @@
 #'
 #' @noRd
 
-render_locals <- function(siteid, sites, county, datasource, output = getwd()) {
+render_locals <- function(siteid, sites, county, datasource, landscape_p2 = FALSE, output = getwd()) {
 
   quarto_render(input = glue("{output}/Transect_maps.qmd"),
                 output_format = "all",
-                execute_params = list(faltid    = siteid,
-                                      dat       = sites,
-                                      lankod    = county,
-                                      datasource = datasource,
-                                      directory = output
+                execute_params = list(faltid       = siteid,
+                                      dat          = sites,
+                                      lankod       = county,
+                                      datasource   = datasource,
+                                      landscape_p2 = landscape_p2,
+                                      directory    = output
                 ),
                 output_file = glue::glue("{siteid}.pdf"),
                 cache_refresh = TRUE)
 
-  cache   <- list.files(path = glue("{output}/Transect_maps_cache"), full.names = TRUE, recursive = TRUE)
-  mapfile <- list.files(path = glue("{output}/Transect_maps_files"), full.names = TRUE, recursive = TRUE)
-  mapsfile <- list.files(path = glue("{output}"), pattern = "\\.png$|\\.html$", full.names = TRUE, recursive = TRUE)
+  # If landscape_p2 was requested, merge the landscape PDF as page 2
+  merge_flag <- glue("{output}/.landscape_merge")
+  if (file.exists(merge_flag)) {
+    landscape_pdf <- readLines(merge_flag)
+    main_pdf      <- glue("{output}/{siteid}.pdf")
+    merged_pdf    <- glue("{output}/{siteid}_merged.pdf")
+    pdftools::pdf_combine(c(main_pdf, landscape_pdf), merged_pdf)
+    file.rename(merged_pdf, main_pdf)
+    file.remove(merge_flag)
+  }
+
+  cache    <- list.files(path = glue("{output}/Transect_maps_cache"), full.names = TRUE, recursive = TRUE)
+  mapfile  <- list.files(path = glue("{output}/Transect_maps_files"), full.names = TRUE, recursive = TRUE)
+  mapsfile <- list.files(path = glue("{output}"), pattern = "\\.png$|\\.html$|\\.pdf$", full.names = TRUE, recursive = TRUE)
+  # Don't delete the final site PDF
+  mapsfile <- mapsfile[!grepl(glue("{siteid}\\.pdf$"), mapsfile)]
 
   file.remove(cache)
   file.remove(mapfile)
@@ -47,6 +61,9 @@ render_locals <- function(siteid, sites, county, datasource, output = getwd()) {
 #'   the \code{sites} file are used. Example: \code{siteID = c(1000, 1001)}.
 #' @param county character; the county name of the county your survey is situated in
 #' @param output the output directory path, default to working directory
+#' @param landscape_p2 logical; if \code{TRUE} and datasource is slinga-only, a second
+#'   page is added to the PDF with the combined aerial map in landscape orientation.
+#'   Ignored for slinga+transekt and transekt-only datasources. Default \code{FALSE}.
 #' @param sep character; the delimiter used in the csv file (\code{";"} or \code{","}).
 #'   If \code{NULL} (default), the delimiter is auto-detected from the first line of the file.
 #'
@@ -65,7 +82,7 @@ render_locals <- function(siteid, sites, county, datasource, output = getwd()) {
 #' render_map(sites = "data/lokaler.csv", county = "Skåne", siteID = c(1000, 1001))
 #' }
 
-render_map <- function(sites = NULL, siteID = NULL, county = NULL, output = getwd(), sep = NULL) {
+render_map <- function(sites = NULL, siteID = NULL, county = NULL, landscape_p2 = FALSE, output = getwd(), sep = NULL) {
 
   # Known datasource groups
   ds_slinga_only    <- c(54, 55, 56, 66, 67, 84, 118, 131, 167)
@@ -151,6 +168,9 @@ render_map <- function(sites = NULL, siteID = NULL, county = NULL, output = getw
     }
   }
 
+  # landscape_p2 only applies to slinga-only datasources
+  use_landscape_p2 <- landscape_p2 && display_mode == "slinga"
+
   input <- system.file("extdata", "Transect_maps.qmd", package = "surveymapR")
   file.copy(from = input, to = output, overwrite = TRUE)
 
@@ -158,7 +178,8 @@ render_map <- function(sites = NULL, siteID = NULL, county = NULL, output = getw
     siteid,
     possibly(
       ~render_locals(siteid = .x, sites = sites, county = county,
-                     datasource = display_mode, output = output),
+                     datasource = display_mode, landscape_p2 = use_landscape_p2,
+                     output = output),
       otherwise = "Redo"
     ),
     .progress = "Creating maps"

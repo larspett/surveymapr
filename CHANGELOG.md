@@ -9,7 +9,19 @@ Format: `vMAJOR.MINOR.PATCH — YYYY-MM-DD`
 
 ---
 
-## v0.4.0 — 2026-06-08
+## v0.5.0 — 2026-06-09
+
+### New features
+- `landscape_p2 = TRUE` parameter added to `render_map()`: for slinga-only datasources, adds a second page with the combined aerial map in landscape orientation
+- Landscape page rendered at higher resolution (1200×850px) and merged into the final PDF using `pdftools::pdf_combine()`, avoiding LaTeX page rotation entirely
+- Slingelement portrait page suppressed when `landscape_p2 = TRUE` — the landscape page replaces it with a header strip
+
+### Dependencies
+- `pdftools` added to Imports
+
+---
+
+
 
 ### New features
 - `siteID` parameter now accepts a vector of IDs (e.g. `siteID = c(1000, 1001)`) to render a subset of sites

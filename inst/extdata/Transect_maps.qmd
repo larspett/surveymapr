@@ -18,6 +18,7 @@ params:
   dat: NA
   lankod: "Östergötlands"
   datasource: "slinga"
+  landscape_p2: false
   directory: NA
 ---
 
@@ -131,7 +132,7 @@ if (nrow(trans) > 0) {
 
 ```{r}
 #| label: "Slingelement"
-#| include: !expr nrow(sling) > 0
+#| include: !expr nrow(sling) > 0 && !isTRUE(params$landscape_p2)
 #| fig-pos: "!"
 #| out-width: "100%"
 
@@ -176,7 +177,7 @@ if (nrow(sling) > 0) {
   image_write(img, glue("{params$directory}/Slingor.png"))
 }
 
-if (nrow(sling) > 0) knitr::include_graphics(glue("{params$directory}/Slingor.png"))
+if (nrow(sling) > 0 && !isTRUE(params$landscape_p2)) knitr::include_graphics(glue("{params$directory}/Slingor.png"))
 ```
 
 ```{r}
@@ -315,4 +316,60 @@ combined <- image_append(c(top_row, gap, bot), stack = TRUE)
 image_write(combined, glue("{params$directory}/OverviewPage.png"))
 
 knitr::include_graphics(glue("{params$directory}/OverviewPage.png"))
+```
+
+```{r}
+#| label: "landscape-geometry"
+#| results: asis
+#| echo: false
+
+if (isTRUE(params$landscape_p2)) {
+  # Render the combined aerial map at landscape dimensions
+  m <- leaflet(options = leafletOptions(zoomControl = FALSE, attributionControl = FALSE)) %>%
+    addTiles() %>%
+    addProviderTiles("Esri.WorldImagery") %>%
+    fitBounds(lng1 = as.numeric(bbo["xmin"]),
+              lat1 = as.numeric(bbo["ymin"]),
+              lng2 = as.numeric(bbo["xmax"]),
+              lat2 = as.numeric(bbo["ymax"])) %>%
+    {if(nrow(sling)>0) addPolylines(., data = sling, color = "#ffff31", label = sling$segment,
+                 labelOptions = labelOptions(textsize = "12px", noHide = TRUE,
+                   style = list("font-weight" = "bold",
+                                background = rgb(255,255,255,0.1,maxColorValue = 255),
+                                color = "white")),
+                 opacity = 0.8, weight = 5) else .} %>%
+    {if(nrow(slingend)>0) addCircleMarkers(., data = slingend, lng = ~X, lat = ~Y,
+                     radius = 7, color = "orange", stroke = FALSE, fillOpacity = 1) else .} %>%
+    addScaleBar(position = "topright", options = scaleBarOptions(imperial = FALSE))
+
+  mapshot2(m, url = glue("{params$directory}/m.html"),
+           file = glue("{params$directory}/TransSlingorLandscape.png"),
+           remove_controls = c("zoomControl","layersControl","homeButton","drawToolbar","easyButton"),
+           vwidth = 1200, vheight = 850)
+
+  # Add header strip with site name
+  library(magick)
+  img    <- image_read(glue("{params$directory}/TransSlingorLandscape.png"))
+  iw     <- image_info(img)$width
+  header <- image_blank(iw, 60L, color = "white") %>%
+    image_annotate(paste("Slingor", sitelabel),
+                   size = 36, weight = 700, color = "black",
+                   gravity = "West", location = "+16+0")
+  img <- image_append(c(header, img), stack = TRUE)
+  image_write(img, glue("{params$directory}/TransSlingorLandscape.png"))
+
+  # Write the landscape image as a standalone A4 landscape PDF and merge
+  library(magick)
+  img_ls <- image_read(glue("{params$directory}/TransSlingorLandscape.png"))
+
+  # Resize to A4 landscape at 150dpi (297×210mm = 1754×1240px at 150dpi)
+  img_ls <- image_resize(img_ls, "1754x1240!")
+
+  landscape_pdf <- glue("{params$directory}/TransSlingorLandscape.pdf")
+  image_write(img_ls, landscape_pdf, format = "pdf", density = 150)
+
+  # After the main PDF is written, merge via pdftools in render_locals()
+  # Signal the merge is needed by writing a flag file
+  writeLines(landscape_pdf, glue("{params$directory}/.landscape_merge"))
+}
 ```

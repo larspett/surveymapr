@@ -8,6 +8,7 @@ render_map(
   sites = NULL,
   siteID = NULL,
   county = NULL,
+  landscape_p2 = FALSE,
   output = getwd(),
   sep = NULL
 )
@@ -21,6 +22,10 @@ the delimiter is auto-detected from the first line unless \code{sep} is specifie
 the \code{sites} file are used. Example: \code{siteID = c(1000, 1001)}.}
 
 \item{county}{character; the county name of the county your survey is situated in}
+
+\item{landscape_p2}{logical; if \code{TRUE} and datasource is slinga-only, a second
+page is added to the PDF with the combined aerial map in landscape orientation.
+Ignored for slinga+transekt and transekt-only datasources. Default \code{FALSE}.}
 
 \item{output}{the output directory path, default to working directory}
 
