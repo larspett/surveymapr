@@ -26,7 +26,8 @@ Imports:
     glue,
     quarto,
     mapview,
-    pdftools
+    pdftools,
+    chromote
 Depends:
     R (>= 4.1.0)
 RoxygenNote: 7.3.3

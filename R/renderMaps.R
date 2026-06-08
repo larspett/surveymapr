@@ -14,6 +14,10 @@
 
 render_locals <- function(siteid, sites, county, datasource, landscape_p2 = FALSE, output = getwd()) {
 
+  # Allow any lingering Chromote/Chrome session to release before starting
+  Sys.sleep(2)
+  try(chromote::ChromoteSession$new()$close(), silent = TRUE)
+
   quarto_render(input = glue("{output}/Transect_maps.qmd"),
                 output_format = "all",
                 execute_params = list(faltid       = siteid,
