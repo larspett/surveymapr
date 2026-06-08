@@ -29,7 +29,19 @@ Update it whenever a non-obvious choice is made.
 - **Why:** Point/polygon rendering requires different map logic. Deferring until the use case is confirmed.
 - **Impact:** Calling `render_map()` with a Punktlokal datasource will abort with a "not yet supported" message once the datasource list is populated.
 
-## 2026-06-08 — Mixed datasources rejected upfront
+## 2026-06-09 — Landscape page 2 via PDF merge rather than LaTeX rotation
+
+- **What:** The landscape second page is generated as a separate PNG (1200×850px), converted to an A4 landscape PDF by magick, and merged with the portrait PDF using `pdftools::pdf_combine()`.
+- **Why:** All LaTeX-based approaches (`pdflscape`, `lscape`, `\newgeometry`, `etoolbox` patching) either produced a blank intermediate page, rotated content without rotating the page, or broke in LuaLaTeX. PDF merging sidesteps LaTeX geometry entirely and gives guaranteed correct page dimensions.
+- **Impact:** `pdftools` added as a dependency. The QMD writes a flag file (`.landscape_merge`) that `render_locals()` reads after Quarto finishes to trigger the merge and cleanup.
+
+## 2026-06-09 — Chrome cleanup between batch renders
+
+- **What:** A 5-second sleep and `pkill` of Chrome processes is added at the start of each `render_locals()` call.
+- **Why:** `mapshot2`/`webshot2` leaves a headless Chrome process running after each Quarto render. When rendering multiple sites in a batch, the second site's Chrome times out because the first site's Chrome is still alive. Since Chrome runs inside a Quarto subprocess, it cannot be closed via R's Chromote API from the parent process.
+- **Impact:** Adds ~5 seconds overhead per site. `pkill` targets `Google Chrome for Testing` and `chromium` — may need adjustment on non-Mac platforms.
+
+
 
 - **What:** If a CSV contains rows from more than one `sit_typ_datasourceid`, `render_map()` aborts immediately.
 - **Why:** Different datasources imply different display logic. Silently mixing them would produce incorrect maps. The user should provide clean, single-datasource input files.
