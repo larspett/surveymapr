@@ -2,7 +2,8 @@
 
 export(render_map)
 import(dplyr)
+import(glue)
 import(quarto)
 importFrom(purrr,possibly)
 importFrom(purrr,walk)
-importFrom(readr,read_csv2)
+importFrom(readr,read_delim)

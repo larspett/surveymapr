@@ -1,28 +1,31 @@
 Package: surveymapR
 Type: Package
 Title: Create Maps Around Survey Transects or Points
-Version: 0.3.0
+Version: 0.4.0
 Author: Georg Andersson
 Maintainer: Georg Andersson <georg.andersson@biol.lu.se>
-Description: This package create maps that show overview and specifics of transects and points in a survey.
-    This can then be used in field to get to the specific site and then orient one self to where the surveys should be.
+Description: This package creates maps that show an overview and site-specific detail of
+    transects and points in a biodiversity survey. Maps are rendered as PDFs suitable
+    for field use. Supports multiple datasource types from the Swedish Butterfly
+    Monitoring Scheme (SeBMS) and related monitoring programmes.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
-Imports: dplyr,
+Imports:
+    dplyr,
     stringr,
     sf,
     magick,
-    widgetframe,
     htmlwidgets,
-    webshot2,
     purrr,
     tibble,
     tidyr,
-    lubridate,
     leaflet,
     leaflet.providers,
-    RColorBrewer
-Depends: 
+    readr,
+    glue,
+    quarto,
+    mapview
+Depends:
     R (>= 4.1.0)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3

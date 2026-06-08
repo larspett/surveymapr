@@ -1,41 +1,37 @@
-
 #' Creates a Render Function to Render qmd Templates
 #'
 #' @param siteid site id for each locale where the transects or points are.
 #' @param sites the path to the data file with siteid and coordinates for transects
 #'   and points.
 #' @param county character; the county where the survey take place
+#' @param datasource integer; the datasource id for the sites
 #' @param output the output directory path, default to working directory
-#' @param sep character; the delimiter used in the csv file. If NULL (default),
-#'   the delimiter is auto-detected from the first line of the file.
+#'
 #' @import quarto
 #' @import glue
 #'
 #' @noRd
 
-render_locals <- function(siteid, sites, county, output = getwd()) {
-
+render_locals <- function(siteid, sites, county, datasource, output = getwd()) {
 
   quarto_render(input = glue("{output}/Transect_maps.qmd"),
                 output_format = "all",
-                execute_params = list(faltid = siteid,
-                                      dat = sites,
-                                      lankod = county,
+                execute_params = list(faltid    = siteid,
+                                      dat       = sites,
+                                      lankod    = county,
+                                      datasource = datasource,
                                       directory = output
                 ),
-                output_file = glue::glue("{siteid}.pdf"), ##TODO: Perhaps add the site name instead of ID in the pdf name
-                cache_refresh = T)
+                output_file = glue::glue("{siteid}.pdf"),
+                cache_refresh = TRUE)
 
-  cache <- list.files(path = glue("{output}/Transect_maps_cache"), full.names = T, recursive = T)
-  mapfile <- list.files(path = glue("{output}/Transect_maps_files"), full.names = T, recursive = T)
-  # FIX: removed .qmd from pattern (was deleting the template after first site)
-  # FIX: use anchored regex to avoid partial matches
-  mapsfile <- list.files(path = glue("{output}"), pattern = "\\.png$|\\.html$", full.names = T, recursive = T)
+  cache   <- list.files(path = glue("{output}/Transect_maps_cache"), full.names = TRUE, recursive = TRUE)
+  mapfile <- list.files(path = glue("{output}/Transect_maps_files"), full.names = TRUE, recursive = TRUE)
+  mapsfile <- list.files(path = glue("{output}"), pattern = "\\.png$|\\.html$", full.names = TRUE, recursive = TRUE)
 
   file.remove(cache)
   file.remove(mapfile)
   file.remove(mapsfile)
-
 }
 
 
@@ -47,8 +43,8 @@ render_locals <- function(siteid, sites, county, output = getwd()) {
 #' @param sites a path to a csv file with sites with transect or point coordinates
 #'   in WKT format. Accepts both semicolon-separated and comma-separated files;
 #'   the delimiter is auto-detected from the first line unless \code{sep} is specified.
-#' @param siteID optional; site id for the sites you want. If not given it use all id in
-#'   the `sites` file
+#' @param siteID optional; one or more site ids to render. If not given, all ids in
+#'   the \code{sites} file are used. Example: \code{siteID = c(1000, 1001)}.
 #' @param county character; the county name of the county your survey is situated in
 #' @param output the output directory path, default to working directory
 #' @param sep character; the delimiter used in the csv file (\code{";"} or \code{","}).
@@ -66,19 +62,26 @@ render_locals <- function(siteid, sites, county, output = getwd()) {
 #' @examples
 #' \dontrun{
 #' render_map(sites = "data/lokaler.csv", county = "Skåne")
+#' render_map(sites = "data/lokaler.csv", county = "Skåne", siteID = c(1000, 1001))
 #' }
 
 render_map <- function(sites = NULL, siteID = NULL, county = NULL, output = getwd(), sep = NULL) {
+
+  # Known datasource groups
+  ds_slinga_only    <- c(54, 55, 56, 66, 67, 84, 118, 131, 167)
+  ds_slinga_transekt <- c(59, 60, 61, 63, 65, 81, 129)
+  ds_transekt_only  <- c(57)
+  ds_punktlokal     <- c()  # reserved for future use — none yet classified
+  ds_known          <- c(ds_slinga_only, ds_slinga_transekt, ds_transekt_only)
 
   if (is.null(county)) {
     stop("\n\n'county' is empty! \nYou must state in which county the locales are situated")
   }
 
-  # set site source
+  # Load data
   if (is.null(sites)) {
     site <- lokaler
   } else {
-    # Auto-detect delimiter if not specified
     if (is.null(sep)) {
       first_line <- readLines(sites, n = 1)
       sep <- ifelse(grepl(";", first_line), ";", ",")
@@ -86,21 +89,78 @@ render_map <- function(sites = NULL, siteID = NULL, county = NULL, output = getw
     site <- read_delim(sites, delim = sep, show_col_types = FALSE)
   }
 
-  # Set site ids
+  # --- Datasource validation ---
+
+  # Check column exists
+  if (!"sit_typ_datasourceid" %in% names(site)) {
+    stop("\n\nColumn 'sit_typ_datasourceid' not found in the data file.\n",
+         "Please ensure your CSV includes this column.")
+  }
+
+  ds_in_data <- unique(site$sit_typ_datasourceid)
+
+  # Check for mixed datasources
+  if (length(ds_in_data) > 1) {
+    stop("\n\nMultiple datasources found in your data: ", paste(ds_in_data, collapse = ", "), ".\n",
+         "Please provide a file with a single datasource only.")
+  }
+
+  datasource <- ds_in_data
+
+  # Check for unknown datasource
+  if (!datasource %in% ds_known) {
+    stop("\n\nDatasource ", datasource, " is not recognised.\n",
+         "Supported datasources:\n",
+         "  Slinga/Punktlokal only : ", paste(ds_slinga_only, collapse = ", "), "\n",
+         "  Slinga + Transekt      : ", paste(ds_slinga_transekt, collapse = ", "), "\n",
+         "  Transekt only          : ", paste(ds_transekt_only, collapse = ", "))
+  }
+
+  # Punktlokal — not yet supported (placeholder for future geometry check)
+  # if (datasource %in% ds_punktlokal) {
+  #   stop("\n\nDatasource ", datasource, " is a Punktlokal type and is not yet supported.")
+  # }
+
+  # Determine display mode
+  display_mode <- dplyr::case_when(
+    datasource %in% ds_slinga_only     ~ "slinga",
+    datasource %in% ds_slinga_transekt ~ "slinga_transekt",
+    datasource %in% ds_transekt_only   ~ "transekt"
+  )
+
+  # --- Site ID filtering ---
   if (is.null(siteID)) {
     siteid <- site %>%
       distinct(sit_aggregated) %>%
       pull()
-  }else {
+  } else {
     siteid <- site %>%
       distinct(sit_aggregated) %>%
       filter(sit_aggregated %in% siteID) %>%
       pull()
+
+    if (length(siteid) == 0) {
+      stop("\n\nNone of the requested siteID values were found in the data.\n",
+           "Requested: ", paste(siteID, collapse = ", "))
+    }
+
+    missing <- setdiff(siteID, siteid)
+    if (length(missing) > 0) {
+      warning("The following siteID values were not found in the data and will be skipped: ",
+              paste(missing, collapse = ", "))
+    }
   }
 
   input <- system.file("extdata", "Transect_maps.qmd", package = "surveymapR")
-  file.copy(from = input, to = output)
-  # run trough all site-ids and sites
-  walk(siteid, possibly(~render_locals(siteid=.x, sites=sites, county = county, output = output), otherwise = "Redo"), .progress = "Creating maps") # The 'possibly' hinder the function to stop if some of the site maps does not work
+  file.copy(from = input, to = output, overwrite = TRUE)
 
+  walk(
+    siteid,
+    possibly(
+      ~render_locals(siteid = .x, sites = sites, county = county,
+                     datasource = display_mode, output = output),
+      otherwise = "Redo"
+    ),
+    .progress = "Creating maps"
+  )
 }

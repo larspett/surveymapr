@@ -4,16 +4,28 @@
 \alias{render_map}
 \title{Render the Maps for Your Sites}
 \usage{
-render_map(sites = NULL, siteID = NULL, county = NULL)
+render_map(
+  sites = NULL,
+  siteID = NULL,
+  county = NULL,
+  output = getwd(),
+  sep = NULL
+)
 }
 \arguments{
-\item{sites}{a path to a semi-colon separated csv file with sites with transect or
-point coordinates in WKT format}
+\item{sites}{a path to a csv file with sites with transect or point coordinates
+in WKT format. Accepts both semicolon-separated and comma-separated files;
+the delimiter is auto-detected from the first line unless \code{sep} is specified.}
 
-\item{siteID}{optional; site id for the sites you want. If not given it use all id in
-the `sites` file}
+\item{siteID}{optional; one or more site ids to render. If not given, all ids in
+the \code{sites} file are used. Example: \code{siteID = c(1000, 1001)}.}
 
 \item{county}{character; the county name of the county your survey is situated in}
+
+\item{output}{the output directory path, default to working directory}
+
+\item{sep}{character; the delimiter used in the csv file (\code{";"} or \code{","}).
+If \code{NULL} (default), the delimiter is auto-detected from the first line of the file.}
 }
 \value{
 a pdf with an overview map and zoomed in maps on the transects or points.
@@ -25,5 +37,6 @@ maps from this.
 \examples{
 \dontrun{
 render_map(sites = "data/lokaler.csv", county = "Skåne")
+render_map(sites = "data/lokaler.csv", county = "Skåne", siteID = c(1000, 1001))
 }
 }

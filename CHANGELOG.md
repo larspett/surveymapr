@@ -9,7 +9,27 @@ Format: `vMAJOR.MINOR.PATCH — YYYY-MM-DD`
 
 ---
 
-## Unreleased
+## v0.4.0 — 2026-06-08
+
+### New features
+- `siteID` parameter now accepts a vector of IDs (e.g. `siteID = c(1000, 1001)`) to render a subset of sites
+- Datasource validation added to `render_map()`: datasource is auto-detected from `sit_typ_datasourceid` column in the data
+- Display mode (`"slinga"`, `"slinga_transekt"`, `"transekt"`) now derived from datasource ID, replacing unreliable keyword heuristics for slinga-only and transekt-only datasources
+- Informative error messages for: missing county, unknown datasource, mixed datasources in one file, requested siteIDs not found in data
+- Warning issued for partially matched siteID vectors (some found, some not)
+
+### Design decisions
+- For `slinga_transekt` datasources (59, 60, 61, 63, 65, 81, 129), feature type is still determined by `sit_name` keyword ("transekt"/"sling") — this is a known data model limitation, tracked in DECISIONS.md
+- Punktlokal datasources reserved for future implementation; will abort with informative message when added
+
+### Supported datasources
+- Slinga/Punktlokal only: 54, 55, 56, 66, 67, 84, 118, 131, 167
+- Slinga + Transekt: 59, 60, 61, 63, 65, 81, 129
+- Transekt only: 57
+
+---
+
+## v0.3.1 — 2026-06-08
 
 ### Bug fixes
 - Replaced `lazyLoad()` with `loadNamespace()` for reliable sysdata loading on non-compiled installs
