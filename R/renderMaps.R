@@ -14,9 +14,8 @@
 
 render_locals <- function(siteid, sites, county, datasource, landscape_p2 = FALSE, output = getwd()) {
 
-  # Allow any lingering Chromote/Chrome session to release before starting
-  Sys.sleep(2)
-  try(chromote::ChromoteSession$new()$close(), silent = TRUE)
+  # Give any Chrome process from a previous render time to shut down cleanly
+  Sys.sleep(5)
 
   quarto_render(input = glue("{output}/Transect_maps.qmd"),
                 output_format = "all",
@@ -41,11 +40,18 @@ render_locals <- function(siteid, sites, county, datasource, landscape_p2 = FALS
     file.remove(merge_flag)
   }
 
+  # Force-kill any lingering Chrome processes left by mapshot2/webshot2
+  if (.Platform$OS.type == "unix") {
+    system("pkill -f 'Google Chrome for Testing' 2>/dev/null || true", ignore.stdout = TRUE, ignore.stderr = TRUE)
+    system("pkill -f 'chromium' 2>/dev/null || true", ignore.stdout = TRUE, ignore.stderr = TRUE)
+  }
+  Sys.sleep(2)
+
   cache    <- list.files(path = glue("{output}/Transect_maps_cache"), full.names = TRUE, recursive = TRUE)
   mapfile  <- list.files(path = glue("{output}/Transect_maps_files"), full.names = TRUE, recursive = TRUE)
-  mapsfile <- list.files(path = glue("{output}"), pattern = "\\.png$|\\.html$|\\.pdf$", full.names = TRUE, recursive = TRUE)
-  # Don't delete the final site PDF
-  mapsfile <- mapsfile[!grepl(glue("{siteid}\\.pdf$"), mapsfile)]
+  mapsfile <- list.files(path = glue("{output}"), pattern = "\\.png$|\\.html$", full.names = TRUE, recursive = TRUE)
+  landscape_pdf_tmp <- glue("{output}/TransSlingorLandscape.pdf")
+  if (file.exists(landscape_pdf_tmp)) file.remove(landscape_pdf_tmp)
 
   file.remove(cache)
   file.remove(mapfile)

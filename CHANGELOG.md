@@ -9,6 +9,16 @@ Format: `vMAJOR.MINOR.PATCH — YYYY-MM-DD`
 
 ---
 
+## v0.5.1 — 2026-06-09
+
+### Bug fixes
+- Fixed batch rendering: cleanup pattern included `.pdf` files, causing previously rendered site PDFs to be deleted when the next site ran
+- Intermediate `TransSlingorLandscape.pdf` now cleaned up explicitly rather than via glob pattern
+- Chrome/Chromote processes from `mapshot2` now killed between sites via `pkill` to prevent timeout on second and subsequent renders
+- 5-second sleep added before each render to allow previous Chrome subprocess to exit cleanly
+
+---
+
 ## v0.5.0 — 2026-06-09
 
 ### New features
