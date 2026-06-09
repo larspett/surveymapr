@@ -11,7 +11,13 @@ Update it whenever a non-obvious choice is made.
 
 ---
 
-## 2026-06-08 — Datasource-driven display mode
+## TODO — Optimise zoom and dimensions for detailed aerial maps
+
+- **What:** The Slingor, Transekter, TransSlingor, and landscape page 2 maps all use `fitBounds()` with a fixed small padding and fixed `vwidth`/`vheight`. For elongated sites the map ends up with excessive empty space on two sides.
+- **Proposed approach:** Calculate the bounding box aspect ratio and adjust `vwidth`/`vheight` dynamically to match it, and scale padding proportionally to the longer axis rather than using a fixed ~50m value.
+- **Impact:** Would affect all detailed aerial map renders. Low risk but needs testing across a range of site shapes.
+
+
 
 - **What:** Display mode (`slinga`, `slinga_transekt`, `transekt`) is derived from `sit_typ_datasourceid` in the data, rather than inferred from site name keywords at render time.
 - **Why:** Keyword heuristics ("transekt"/"sling" in `sit_name`) are fragile and only coincidentally correct. The datasource ID is a reliable, structured field that encodes the survey type.
