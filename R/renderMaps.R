@@ -14,9 +14,6 @@
 
 render_locals <- function(siteid, sites, county, datasource, landscape_p2 = FALSE, output = getwd()) {
 
-  # Give any Chrome process from a previous render time to shut down cleanly
-  Sys.sleep(5)
-
   quarto_render(input = glue("{output}/Transect_maps.qmd"),
                 output_format = "all",
                 execute_params = list(faltid       = siteid,
@@ -27,7 +24,8 @@ render_locals <- function(siteid, sites, county, datasource, landscape_p2 = FALS
                                       directory    = output
                 ),
                 output_file = glue::glue("{siteid}.pdf"),
-                cache_refresh = TRUE)
+                cache_refresh = TRUE,
+                as_job = FALSE)
 
   # If landscape_p2 was requested, merge the landscape PDF as page 2
   merge_flag <- glue("{output}/.landscape_merge")
@@ -39,13 +37,6 @@ render_locals <- function(siteid, sites, county, datasource, landscape_p2 = FALS
     file.rename(merged_pdf, main_pdf)
     file.remove(merge_flag)
   }
-
-  # Force-kill any lingering Chrome processes left by mapshot2/webshot2
-  if (.Platform$OS.type == "unix") {
-    system("pkill -f 'Google Chrome for Testing' 2>/dev/null || true", ignore.stdout = TRUE, ignore.stderr = TRUE)
-    system("pkill -f 'chromium' 2>/dev/null || true", ignore.stdout = TRUE, ignore.stderr = TRUE)
-  }
-  Sys.sleep(2)
 
   cache    <- list.files(path = glue("{output}/Transect_maps_cache"), full.names = TRUE, recursive = TRUE)
   mapfile  <- list.files(path = glue("{output}/Transect_maps_files"), full.names = TRUE, recursive = TRUE)

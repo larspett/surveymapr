@@ -11,6 +11,16 @@ Update it whenever a non-obvious choice is made.
 
 ---
 
+## KNOWN ISSUE — Grey tiles on Apple Silicon Mac Studio
+
+- **What:** Map tiles (both Esri WorldImagery and OpenStreetMap) render as grey on the Mac Studio (Apple Silicon/ARM64). Maps are otherwise correct — routes, markers, labels all render fine.
+- **Investigated:** Network connectivity confirmed OK; Chrome installed and found; Quarto Chromium installed but is x86_64 build running under Rosetta emulation; `chromote.chrome.path` set explicitly in `~/.Rprofile`; `delay` increased to 10s; Chrome security flags tried — none resolved the issue.
+- **Likely cause:** x86_64 Chromium running under Rosetta on ARM64 macOS has networking/rendering limitations in headless mode that prevent tile loading from local HTML files.
+- **Workaround:** Use the MacBook Pro (Intel) for map generation — works correctly there.
+- **Resolution:** Monitor for ARM64 Chromium support in Quarto/webshot2/chromote.
+
+---
+
 ## TODO — Optimise zoom and dimensions for detailed aerial maps
 
 - **What:** The Slingor, Transekter, TransSlingor, and landscape page 2 maps all use `fitBounds()` with a fixed small padding and fixed `vwidth`/`vheight`. For elongated sites the map ends up with excessive empty space on two sides.
